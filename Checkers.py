@@ -1,4 +1,3 @@
-# v.10
 import random
 import Bot
 import Board
@@ -43,31 +42,12 @@ class Checkers:
         elif self.board.game_is_on == 0:
             print('game over')
 
-f = Board.Field()
 
-bot = Bot.Bot(the_depth=1, the_board=f)
-
-match = Checkers(control='command', opp=bot, board=f)
-
+# # Text game
+# f = Board.Field()
+# bot = Bot.Bot(the_depth=1, the_board=f)
+#
+# match = Checkers(control='command', opp=bot, board=f)
+#
 # while match.board.game_is_on == 1:
 #     match.next_turn()
-
-# match.next_turn()
-# print(match.board.whites_turn, match.opp, match.opp.alpha_beta(match.board, match.opp.depth, float('-inf'), float('inf'), maximizing_whites=0))
-# , match.opp.get_next_move())
-# match.next_turn()
-# match.next_turn()
-# print(match.board.whites_turn, match.opp, match.opp.get_next_move())
-
-
-# match.next_turn()
-# match.next_turn()
-
-# print(f.field)
-# f2 = Field()
-# f2.field['a1'] = None
-#
-# f.field = f2.field
-#
-# print(f.field)
-

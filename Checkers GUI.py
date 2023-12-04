@@ -52,12 +52,12 @@ def setColor():
 def move():
     i = canvas.gettags(canvas.find_withtag('current')[0])[0][1:3]
     moves_history_list.append(history_list[-1][0]+i)
-    whites_move = None
-    if f.whites_turn==1:
-        whites_move = moves_history_list[-1]
-    match.next_turn(whites_move)
+    gui_move = None
+    if not isinstance(match.opp, Bot.Bot) or f.whites_turn==1:
+        gui_move = moves_history_list[-1]
+    match.next_turn(gui_move)
     if isinstance(match.opp, Bot.Bot) and f.game_is_on==1:
-        while f.whites_turn==0:
+        while f.whites_turn==0 and f.game_is_on==1:
             match.next_turn()
     canvas.delete('piece')
     canvas.delete('king')
@@ -85,8 +85,7 @@ def move():
                                         outline='black', tags=(i, 'black', 'king'))
                 canvas.tag_bind(id, "<Button-1>", lambda x: setColor())
 
-    if len([i for i, j in f.field.items() if 'white' in j.__str__()]) == 0 or len(
-            [i for i, j in f.field.items() if 'black' in j.__str__()]) == 0:
+    if f.game_is_on==0:
         title_label.config(text='Игра окончена')
 
 for i in fields:
@@ -102,7 +101,7 @@ for i in range(8):
 f = Board.Field()
 bot = Checkers.Bot.Bot(the_depth=3, the_board=f)
 
-match = Checkers.Checkers(opp=bot, board=f)
+match = Checkers.Checkers(opp=bot, board=f, control='gui')
 
 for i,j in match.board.field.items():
     k=i

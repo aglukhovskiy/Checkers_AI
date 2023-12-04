@@ -11,9 +11,20 @@ class Bot():
         # return random.choice(self.board.available_moves(colour=self.colour)[0])
         if  len(self.board.available_moves(self.board.white_num_to_colour[self.board.whites_turn])[0])==1:
             return self.board.available_moves(self.board.white_num_to_colour[self.board.whites_turn])[0][0]
-        return self.alpha_beta(self.board, self.depth, float('-inf'), float('inf'), maximizing_whites=0)[1]
+        elif  len(self.board.available_moves(self.board.white_num_to_colour[self.board.whites_turn])[0])==0:
+            return None
+        elif  len(self.board.available_moves(self.board.white_num_to_colour[self.board.whites_turn])[2])>1: # if 2+ multiple takes - choose random
+            if len(self.board.multiple_jumping_piece)>0: # for second+ moves at one turn
+                for i in self.board.available_moves(self.board.white_num_to_colour[self.board.whites_turn])[0]:
+                    if i[0:2] in self.board.multiple_jumping_piece:
+                        return i
+            return self.board.available_moves(self.board.white_num_to_colour[self.board.whites_turn])[0][0]
 
-    #
+        alpha_beta_result = self.alpha_beta(self.board, self.depth, float('-inf'), float('inf'), maximizing_whites=0)
+        if alpha_beta_result[1]==None: # all moves leads to defeat
+            return self.board.available_moves(self.board.white_num_to_colour[self.board.whites_turn])[0][0]
+        return alpha_beta_result[1]
+
     def alpha_beta(self, board, depth, alpha, beta, maximizing_whites):
         board.bot_test = 1
         if board.game_is_on==0:
