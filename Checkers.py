@@ -2,6 +2,9 @@ import random
 import Bot
 import Board
 import copy
+import numpy as np
+
+from Encoder import OnePlaneEncoder
 
 class Checkers:
 
@@ -43,11 +46,16 @@ class Checkers:
             print('game over')
 
 
-# # Text game
+# Text game
 # f = Board.Field()
-# bot = Bot.Bot(the_depth=1, the_board=f)
+# bot = Bot.Bot(the_depth=2, the_board=f)
 #
 # match = Checkers(control='command', opp=bot, board=f)
 #
+# match.next_turn()
+# match.next_turn()
+# match.next_turn()
+# match.next_turn()
+
 # while match.board.game_is_on == 1:
 #     match.next_turn()

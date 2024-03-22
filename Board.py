@@ -15,6 +15,7 @@ class Field:
         self.history = []
         self.multiple_jumping_piece = []
         self.fields = []
+        self.parent = None
         if preset is not None:
             self.field = preset
         else:
@@ -48,6 +49,12 @@ class Field:
             self.field['h8'] = Piece(colour='black')
             self.field['h6'] = Piece(colour='black')
 
+            self.field['c5'] = Piece(colour='white')
+            self.field['e5'] = Piece(colour='white')
+            self.field['b8'] = Piece(colour='black')
+            self.field['d8'] = Piece(colour='black')
+
+
     def get_number_of_pieces_and_kings(self):
         p_w = 0
         p_b = 0
@@ -55,14 +62,14 @@ class Field:
         k_b = 0
 
         for i, j in self.field.items():
-            if isinstance(j, Piece) and j.colour == 'white':
-                p_w += 1
-            elif isinstance(j, King) and j.colour == 'white':
+            if isinstance(j, King) and j.colour == 'white':
                 k_w += 1
-            elif isinstance(j, Piece) and j.colour == 'black':
-                p_b += 1
+            elif isinstance(j, Piece) and j.colour == 'white':
+                p_w += 1
             elif isinstance(j, King) and j.colour == 'black':
                 k_b += 1
+            elif isinstance(j, Piece) and j.colour == 'black':
+                p_b += 1
         return [p_w, p_b, k_w, k_b]
 
     def available_moves(self, colour):
