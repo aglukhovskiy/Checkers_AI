@@ -284,3 +284,5 @@ class King(Piece):
         super().__init__(colour=colour)
     def __str__(self):
         return '{} king'.format(self.colour)
+
+# NN
