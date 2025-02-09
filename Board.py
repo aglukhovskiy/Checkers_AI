@@ -16,6 +16,9 @@ class Field:
         self.multiple_jumping_piece = []
         self.fields = []
         self.parent = None
+
+        self.matrix = [[0] * 8] * 8
+
         if preset is not None:
             self.field = preset
         else:
@@ -49,11 +52,8 @@ class Field:
             self.field['h8'] = Piece(colour='black')
             self.field['h6'] = Piece(colour='black')
 
-            self.field['c5'] = Piece(colour='white')
-            self.field['e5'] = Piece(colour='white')
-            self.field['b8'] = Piece(colour='black')
-            self.field['d8'] = Piece(colour='black')
-
+        for i in self.field:
+            self.matrix[8-int(i[1])][self.columns_num[i[0]]-1] = self.field[i]
 
     def get_number_of_pieces_and_kings(self):
         p_w = 0
@@ -72,7 +72,7 @@ class Field:
                 p_b += 1
         return [p_w, p_b, k_w, k_b]
 
-    def available_moves(self, colour):
+    def available_moves(self, colour=None):
 
         self.pieces_list = []
         self.available_moves_list = []
@@ -82,6 +82,11 @@ class Field:
         self.blocking_pieces_list = []
         self.blocked_moves_list = []
         self.pieces_to_capture_by_king_list = []
+        if colour==None:
+            if self.whites_turn:
+                colour = 'white'
+            else:
+                colour = 'black'
 
         # шашки на поле
         for i, j in self.field.items():
@@ -177,8 +182,9 @@ class Field:
 
         return self.available_moves_list, self.available_moves_by_capture_dict, self.next_pos_after_capture_dict
 
-    def move(self, colour, opp, control='command', move=None):
-        if len(self.available_moves(colour=colour)[0])==0: # If no moves available - dead end
+    def move(self, opp, control='command', move=None):
+        colour = self.white_num_to_colour[self.whites_turn]
+        if len(self.available_moves()[0])==0: # If no moves available - dead end
             self.game_is_on = 0
             return 'game over'
         if control=='gui':
@@ -197,17 +203,17 @@ class Field:
         if self.move_text == 'end':
             self.game_is_on = 0
             return 'game over'
-        elif self.move_text in self.available_moves(colour=colour)[0] and len(self.multiple_jumping_piece) == 0:
-            if self.move_text in self.available_moves(colour=colour)[1]: # Если среди ходов с взятием - удалить шашку
-                self.history.append([self.n, move, 'success', self.available_moves(colour=colour)[1][self.move_text], colour])
-                self.field[self.available_moves(colour=colour)[1][self.move_text]] = None
+        elif self.move_text in self.available_moves()[0] and len(self.multiple_jumping_piece) == 0:
+            if self.move_text in self.available_moves()[1]: # Если среди ходов с взятием - удалить шашку
+                self.history.append([self.n, move, 'success', self.available_moves()[1][self.move_text], colour])
+                self.field[self.available_moves()[1][self.move_text]] = None
                 self.field[self.move_text[2:4]] = self.field[self.move_text[0:2]]
                 self.field[self.move_text[0:2]] = None
                 if self.move_text[3] == '8' and colour == 'white' or self.move_text[3] == '1' and colour == 'black':
                     self.field[self.move_text[2:4]] = King(colour=colour)
-                if self.move_text[2:4] in self.available_moves(colour=colour)[2].values():
+                if self.move_text[2:4] in self.available_moves()[2].values():
                     self.multiple_jumping_piece.append(self.move_text[2:4])
-                    self.move(colour=colour, opp=opp, move= self.available_moves(colour=colour)[0][0]) # проверить кейсы
+                    self.move(colour=colour, opp=opp, move= self.available_moves()[0][0]) # проверить кейсы
                     # self.next_turn(move_list)
                 else:
                     self.whites_turn = 1 - self.whites_turn
@@ -221,10 +227,10 @@ class Field:
                 self.whites_turn = 1 - self.whites_turn # меняем игрока
                 self.multiple_jumping_piece = []
 
-        elif self.move_text in self.available_moves(colour=colour)[0] and self.move_text[0:2] in self.multiple_jumping_piece:
-            if self.move_text in self.available_moves(colour=colour)[1]: # Если среди ходов с взятием - удалить шашку
-                self.history.append([self.n, move, 'success', self.available_moves(colour=colour)[1][self.move_text], colour])
-                self.field[self.available_moves(colour=colour)[1][self.move_text]] = None
+        elif self.move_text in self.available_moves()[0] and self.move_text[0:2] in self.multiple_jumping_piece:
+            if self.move_text in self.available_moves()[1]: # Если среди ходов с взятием - удалить шашку
+                self.history.append([self.n, move, 'success', self.available_moves()[1][self.move_text], colour])
+                self.field[self.available_moves()[1][self.move_text]] = None
             else:
                 self.history.append([self.n, move, 'success', '', colour])
 
@@ -233,7 +239,7 @@ class Field:
             if self.move_text[3] == '8' and colour == 'white' or self.move_text[3] == '1' and colour == 'black':
                 self.field[self.move_text[2:4]] = King(colour=colour)
 
-            if self.move_text[2:4] in self.available_moves(colour=colour)[2].values():
+            if self.move_text[2:4] in self.available_moves()[2].values():
                 self.multiple_jumping_piece = []
                 self.multiple_jumping_piece.append(self.move_text[2:4])
                 # if self.bot_test == 1: # костыль с рандомным взятием

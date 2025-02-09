@@ -17,16 +17,16 @@ class Checkers:
 
     def next_turn(self, move = None):
         if self.control == 'command':
-            return self.next_turn_by_hand()
+            return self.next_turn_by_hand(move)
         if move == 'end':
             self.board.game_is_on = 0
             # print('game over')
             return 'game over'
         elif self.board.game_is_on == 1 :
             if self.board.whites_turn == 1:
-                self.board.move(colour='white', opp = self.opp, move=move)
+                self.board.move(opp = self.opp, move=move)
             elif self.board.whites_turn == 0:
-                self.board.move(colour='black', opp = self.opp, move=move)
+                self.board.move(opp = self.opp, move=move)
         elif self.board.game_is_on == 0:
             # print('game over')
             return 'game over'
@@ -34,28 +34,31 @@ class Checkers:
             print('Error')
         return self.board.history
 
-    def next_turn_by_hand(self):
+    def next_turn_by_hand(self, move):
         if self.board.game_is_on == 1 :
             if self.board.whites_turn == 1:
-                print(self.board.available_moves(colour='white'), self.board.whites_turn)
-                self.board.move(colour='white', opp = self.opp)
+                print(self.board.available_moves(), self.board.whites_turn)
+                self.board.move(opp = self.opp, move=move)
             elif self.board.whites_turn == 0:
-                print(self.board.available_moves(colour='black'), self.board.whites_turn)
-                self.board.move(colour='black', opp = self.opp)
+                print(self.board.available_moves(), self.board.whites_turn)
+                self.board.move(opp = self.opp, move=move)
         elif self.board.game_is_on == 0:
             print('game over')
 
 
 # Text game
-# f = Board.Field()
-# bot = Bot.Bot(the_depth=2, the_board=f)
-#
-# match = Checkers(control='command', opp=bot, board=f)
-#
-# match.next_turn()
-# match.next_turn()
-# match.next_turn()
-# match.next_turn()
 
-# while match.board.game_is_on == 1:
-#     match.next_turn()
+if __name__ == '__main__':
+    f = Board.Field()
+    bot = Bot.Bot(the_depth=2, the_board=f)
+
+    match = Checkers(control='command', opp='bot', board=f)
+
+    match.next_turn(move='e3f4')
+    match.next_turn(move='d6e5')
+    match.next_turn(move='e3f4')
+    match.next_turn()
+    match.next_turn()
+
+    # while match.board.game_is_on == 1:
+    #     match.next_turn()
