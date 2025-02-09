@@ -131,16 +131,22 @@ class MCTSAgent():
 
     @staticmethod
     def simulate_random_game(game):
-        bots = {
-            Player.black: agent.FastRandomBot(),
-            Player.white: agent.FastRandomBot(),
-        }
+
         cntr=0
-        while not game.is_over() or cntr<=50:
-            bot_move = bots[game.next_player].select_move(game)
-            game = game.apply_move(bot_move)
+        while game.board.game_is_on==1 or cntr<=50:
+            bot_move = random.choice(game.board.available_moves()[0])
+            game = game.next_turn(bot_move)
             cntr+=1
-        return game.winner()
+
+        res = game.board.get_number_of_pieces_and_kings()
+        if res[0]+2*res[2]-res[1]-2*res[3]>0:
+            winner=1
+        elif res[0]+2*res[2]-res[1]-2*res[3]<0:
+            winner=0
+        else:
+            winner = None
+
+        return winner
 
 
 f = Board.Field()
