@@ -37,14 +37,15 @@ class Checkers:
     def next_turn_by_hand(self, move):
         if self.board.game_is_on == 1 :
             if self.board.whites_turn == 1:
-                print(self.board.available_moves(), self.board.whites_turn)
+                # print(self.board.available_moves(), self.board.whites_turn)
                 self.board.move(opp = self.opp, move=move)
             elif self.board.whites_turn == 0:
-                print(self.board.available_moves(), self.board.whites_turn)
+                # print(self.board.available_moves(), self.board.whites_turn)
                 self.board.move(opp = self.opp, move=move)
-        elif self.board.game_is_on == 0:
+        if len(self.board.available_moves()[0]) == 0:
+            self.board.game_is_on = 0
+        if self.board.game_is_on == 0:
             print('game over')
-
 
 # Text game
 

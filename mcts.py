@@ -5,6 +5,7 @@ import Checkers
 import Board
 from Checkers import Bot
 
+
 class Player():
     black = 0
     white = 1
@@ -39,7 +40,8 @@ class MCTSNode(object):
 
 # tag::mcts-record-win[]
     def record_win(self, winner):
-        self.win_counts[winner] += 1
+        if winner:
+            self.win_counts[winner] += 1
         self.num_rollouts += 1
 # end::mcts-record-win[]
 
@@ -48,7 +50,7 @@ class MCTSNode(object):
         return len(self.unvisited_moves) > 0
 
     def is_terminal(self):
-        return self.game_state.is_over()
+        return False if self.game_state.board.is_game_on==0 else True
 
     def winning_frac(self, player):
         return float(self.win_counts[player]) / float(self.num_rollouts)
@@ -62,22 +64,32 @@ class MCTSAgent():
 
 # tag::mcts-signature[]
     def select_move(self, game_state):
+        # print('selecting')
         root = MCTSNode(game_state)
+        # print('selecting2')
 # end::mcts-signature[]
 
 # tag::mcts-rounds[]
         for i in range(self.num_rounds):
+            # print('loop')
             node = root
-            while (not node.can_add_child()) and (not node.is_terminal()):
+            while (not node.can_add_child()) and (not game_state.board.game_is_on==0):
+                # print('starting while loop')
                 node = self.select_child(node)
+                # print('while loop')
 
             # Add a new child node into the tree.
             if node.can_add_child():
+                # print('adding child')
                 node = node.add_random_child()
+                # print('added child')
 
             # Simulate a random game from this node.
-            winner = self.simulate_random_game(node.game_state)
 
+            # print('start simulation')
+            winner = self.simulate_random_game(node.game_state)
+            # print('after simulation')
+            # print(winner)
             # Propagate scores back up the tree.
             while node is not None:
                 node.record_win(winner)
@@ -85,7 +97,7 @@ class MCTSAgent():
 # end::mcts-rounds[]
 
         scored_moves = [
-            (child.winning_frac(game_state.next_player), child.move, child.num_rollouts)
+            (child.winning_frac(game_state.board.whites_turn), child.move, child.num_rollouts)
             for child in root.children
         ]
         scored_moves.sort(key=lambda x: x[0], reverse=True)
@@ -98,7 +110,7 @@ class MCTSAgent():
         best_move = None
         best_pct = -1.0
         for child in root.children:
-            child_pct = child.winning_frac(game_state.next_player)
+            child_pct = child.winning_frac(game_state.board.whites_turn)
             if child_pct > best_pct:
                 best_pct = child_pct
                 best_move = child.move
@@ -108,10 +120,15 @@ class MCTSAgent():
 
 # tag::mcts-uct[]
     def select_child(self, node):
+        # print('start selecting')
         """Select a child according to the upper confidence bound for
         trees (UCT) metric.
         """
         total_rollouts = sum(child.num_rollouts for child in node.children)
+        # print('rollouts - ', total_rollouts)
+        # print(node.children)
+        # print(node.parent)
+        # print(sum(child.num_rollouts for child in node.parent.children))
         log_rollouts = math.log(total_rollouts)
 
         best_score = -1
@@ -119,7 +136,7 @@ class MCTSAgent():
         # Loop over each child.
         for child in node.children:
             # Calculate the UCT score.
-            win_percentage = child.winning_frac(node.game_state.next_player)
+            win_percentage = child.winning_frac(node.game_state.board.whites_turn)
             exploration_factor = math.sqrt(log_rollouts / child.num_rollouts)
             uct_score = win_percentage + self.temperature * exploration_factor
             # Check if this is the largest we've seen so far.
@@ -132,13 +149,13 @@ class MCTSAgent():
     @staticmethod
     def simulate_random_game(game):
 
+        simulate_game = deepcopy(game)
         cntr=0
-        while game.board.game_is_on==1 or cntr<=50:
-            bot_move = random.choice(game.board.available_moves()[0])
-            game = game.next_turn(bot_move)
+        while simulate_game.board.game_is_on==1 and cntr<=50:
+            bot_move = random.choice(simulate_game.board.available_moves()[0])
+            simulate_game.next_turn(bot_move)
             cntr+=1
-
-        res = game.board.get_number_of_pieces_and_kings()
+        res = simulate_game.board.get_number_of_pieces_and_kings()
         if res[0]+2*res[2]-res[1]-2*res[3]>0:
             winner=1
         elif res[0]+2*res[2]-res[1]-2*res[3]<0:
@@ -153,6 +170,21 @@ f = Board.Field()
 
 match = Checkers.Checkers(opp='opp', board=f, control='command')
 
-agent = MCTSAgent(num_rounds=5, temperature=3)
+agent = MCTSAgent(num_rounds=100, temperature=3)
 
 agent.select_move(match)
+
+# Вывести доску
+# for i in game.board.field:
+#     if isinstance(game.board.field[i], Board.King):
+#         if game.board.field[i].colour == 'white':
+#             game.board.matrix[8 - int(i[1])][game.board.columns_num[i[0]] - 1] = 2
+#         elif game.board.field[i].colour == 'black':
+#             game.board.matrix[8 - int(i[1])][game.board.columns_num[i[0]] - 1] = -2
+#     elif isinstance(game.board.field[i], Board.Piece):
+#         if game.board.field[i].colour == 'white':
+#             game.board.matrix[8 - int(i[1])][game.board.columns_num[i[0]] - 1] = 1
+#         elif game.board.field[i].colour == 'black':
+#             game.board.matrix[8 - int(i[1])][game.board.columns_num[i[0]] - 1] = -1
+# for i in game.board.matrix:
+#     print(i)

@@ -1,5 +1,6 @@
 import Bot
 import copy
+import numpy as np
 
 
 class Field:
@@ -17,7 +18,7 @@ class Field:
         self.fields = []
         self.parent = None
 
-        self.matrix = [[0] * 8] * 8
+        self.matrix = np.zeros((8,8))
 
         if preset is not None:
             self.field = preset
@@ -52,8 +53,8 @@ class Field:
             self.field['h8'] = Piece(colour='black')
             self.field['h6'] = Piece(colour='black')
 
-        for i in self.field:
-            self.matrix[8-int(i[1])][self.columns_num[i[0]]-1] = self.field[i]
+        # for i in self.field:
+        #     self.matrix[8-int(i[1])][self.columns_num[i[0]]-1] = self.field[i]
 
     def get_number_of_pieces_and_kings(self):
         p_w = 0
@@ -213,7 +214,7 @@ class Field:
                     self.field[self.move_text[2:4]] = King(colour=colour)
                 if self.move_text[2:4] in self.available_moves()[2].values():
                     self.multiple_jumping_piece.append(self.move_text[2:4])
-                    self.move(colour=colour, opp=opp, move= self.available_moves()[0][0]) # проверить кейсы
+                    self.move(opp=opp, move= self.available_moves()[0][0]) # проверить кейсы
                     # self.next_turn(move_list)
                 else:
                     self.whites_turn = 1 - self.whites_turn
