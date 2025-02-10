@@ -165,26 +165,8 @@ class MCTSAgent():
 
         return winner
 
-
-f = Board.Field()
-
-match = Checkers.Checkers(opp='opp', board=f, control='command')
-
-agent = MCTSAgent(num_rounds=100, temperature=3)
-
-agent.select_move(match)
-
-# Вывести доску
-# for i in game.board.field:
-#     if isinstance(game.board.field[i], Board.King):
-#         if game.board.field[i].colour == 'white':
-#             game.board.matrix[8 - int(i[1])][game.board.columns_num[i[0]] - 1] = 2
-#         elif game.board.field[i].colour == 'black':
-#             game.board.matrix[8 - int(i[1])][game.board.columns_num[i[0]] - 1] = -2
-#     elif isinstance(game.board.field[i], Board.Piece):
-#         if game.board.field[i].colour == 'white':
-#             game.board.matrix[8 - int(i[1])][game.board.columns_num[i[0]] - 1] = 1
-#         elif game.board.field[i].colour == 'black':
-#             game.board.matrix[8 - int(i[1])][game.board.columns_num[i[0]] - 1] = -1
-# for i in game.board.matrix:
-#     print(i)
+if __name__ == '__main__':
+    f = Board.Field()
+    match = Checkers.Checkers(opp='opp', board=f, control='command')
+    agent = MCTSAgent(num_rounds=10, temperature=3)
+    agent.select_move(match)

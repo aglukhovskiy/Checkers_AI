@@ -4,6 +4,7 @@ import Board
 import copy
 import numpy as np
 
+import Encoder
 from Encoder import OnePlaneEncoder
 
 class Checkers:
@@ -44,22 +45,27 @@ class Checkers:
                 self.board.move(opp = self.opp, move=move)
         if len(self.board.available_moves()[0]) == 0:
             self.board.game_is_on = 0
-        if self.board.game_is_on == 0:
-            print('game over')
+        # if self.board.game_is_on == 0:
+            # print('game over')
 
 # Text game
 
 if __name__ == '__main__':
     f = Board.Field()
     bot = Bot.Bot(the_depth=2, the_board=f)
+    encoder = Encoder.OnePlaneEncoder()
 
     match = Checkers(control='command', opp='bot', board=f)
 
     match.next_turn(move='e3f4')
     match.next_turn(move='d6e5')
     match.next_turn(move='e3f4')
-    match.next_turn()
-    match.next_turn()
+    # match.next_turn()
+    # match.next_turn()
+    encoder.show_board(f)
+    print(encoder.encode(f)[0][::-1])
+
+
 
     # while match.board.game_is_on == 1:
     #     match.next_turn()

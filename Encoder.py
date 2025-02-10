@@ -1,5 +1,5 @@
-from Board import Field
-from Board import King
+# from Board import Field
+from Board import King, Piece
 import numpy as np
 
 
