@@ -18,6 +18,7 @@ def generate_game(rounds, max_moves, temperature):
     num_moves = 0
 
     while game.board.game_is_on == 1 :
+        print(game.board.whites_turn)
         encoder.show_board(game.board)
         move = bot.select_move(game)  # <5>
         move_coors = move_text_to_point(move)
@@ -35,13 +36,13 @@ if __name__ == '__main__':
     xs = []
     ys = []
     for i in range(2):
-        x, y = generate_game(rounds=2, max_moves=15, temperature=3)
+        x, y = generate_game(rounds=10, max_moves=15, temperature=3)
         xs.append(x)
         ys.append(y)
 
-    x = np.concatenate(xs)  # <3>
-    y = np.concatenate(ys)
-
-    np.save('features.npy', x)  # <4>
-    np.save('label.npy', y)
+    # x = np.concatenate(xs)  # <3>
+    # y = np.concatenate(ys)
+    #
+    # np.save('features.npy', x)  # <4>
+    # np.save('label.npy', y)
 

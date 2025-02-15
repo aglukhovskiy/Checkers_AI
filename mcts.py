@@ -5,7 +5,6 @@ import Checkers
 import Board
 from Checkers import Bot
 
-
 class Player():
     black = 0
     white = 1
@@ -40,7 +39,7 @@ class MCTSNode(object):
 
 # tag::mcts-record-win[]
     def record_win(self, winner):
-        if winner:
+        if winner is not None:
             self.win_counts[winner] += 1
         self.num_rollouts += 1
 # end::mcts-record-win[]
@@ -88,12 +87,15 @@ class MCTSAgent():
 
             # print('start simulation')
             winner = self.simulate_random_game(node.game_state)
+            # print('winner came - ', winner)
             # print('after simulation')
             # print(winner)
             # Propagate scores back up the tree.
+            # print('start root record_win - ', root.win_counts)
             while node is not None:
                 node.record_win(winner)
                 node = node.parent
+            # print('root record_win - ', root.win_counts)
 # end::mcts-rounds[]
 
         scored_moves = [
@@ -148,7 +150,6 @@ class MCTSAgent():
 
     @staticmethod
     def simulate_random_game(game):
-
         simulate_game = deepcopy(game)
         cntr=0
         while simulate_game.board.game_is_on==1 and cntr<=50:
@@ -156,9 +157,10 @@ class MCTSAgent():
             simulate_game.next_turn(bot_move)
             cntr+=1
         res = simulate_game.board.get_number_of_pieces_and_kings()
-        if res[0]+2*res[2]-res[1]-2*res[3]>0:
+
+        if res[0]+3*res[2]-res[1]-3*res[3]>0:
             winner=1
-        elif res[0]+2*res[2]-res[1]-2*res[3]<0:
+        elif res[0]+3*res[2]-res[1]-3*res[3]<0:
             winner=0
         else:
             winner = None
@@ -168,5 +170,6 @@ class MCTSAgent():
 if __name__ == '__main__':
     f = Board.Field()
     match = Checkers.Checkers(opp='opp', board=f, control='command')
+    match.next_turn('e3f4')
     agent = MCTSAgent(num_rounds=10, temperature=3)
     agent.select_move(match)
