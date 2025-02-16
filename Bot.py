@@ -2,6 +2,7 @@ import random
 import Board
 from Encoder import OnePlaneEncoder
 import numpy as np
+from keras.models import load_model
 
 encoder = OnePlaneEncoder()
 
@@ -149,3 +150,28 @@ class Bot():
                 print(counter)
 
             return v, possible_moves[desired_move_index]
+
+class BotNN(Bot):
+    def __init__(self, the_board=None):
+        self.board = the_board
+        self.colour = 'black'
+        self.model = load_model('model_1.keras')
+
+    def get_next_move(self):
+        # return random.choice(self.board.available_moves(colour=self.colour)[0])
+        if len(self.board.available_moves(self.board.white_num_to_colour[self.board.whites_turn])[0])==1:
+            return self.board.available_moves(self.board.white_num_to_colour[self.board.whites_turn])[0][0]
+        elif len(self.board.available_moves(self.board.white_num_to_colour[self.board.whites_turn])[0])==0:
+            return None
+        elif len(self.board.available_moves(self.board.white_num_to_colour[self.board.whites_turn])[0])>1:
+            possible_moves = self.board.available_moves(self.board.white_num_to_colour[self.board.whites_turn])[0]
+            potential_spots = self.board.get_potential_spots_from_moves(moves=possible_moves, opp=self)
+            scores_list = []
+            for i in potential_spots:
+                matrix=encoder.encode(board=None, field=i)
+                predict = self.model.predict(matrix.reshape(1, 8, 8))[0][0]
+                scores_list.append(predict)
+            if self.board.whites_turn==1:
+                return possible_moves[np.argmax(scores_list)]
+            if self.board.whites_turn==0:
+                return possible_moves[np.argmin(scores_list)]

@@ -99,8 +99,8 @@ for i in range(8):
     canvas.create_text(i*50+75, 460, text = columns_num_reversed[i+1], fill='black')
 
 f = Board.Field()
-bot = Checkers.Bot.Bot(the_depth=3, the_board=f)
-
+# bot = Checkers.Bot.Bot(the_depth=3, the_board=f)
+bot = Checkers.Bot.BotNN(the_board=f)
 match = Checkers.Checkers(opp=bot, board=f, control='gui')
 # match = Checkers.Checkers(opp='bot', board=f, control='gui')
 

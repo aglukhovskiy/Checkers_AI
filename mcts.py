@@ -57,10 +57,10 @@ class MCTSNode(object):
 
 
 class MCTSAgent():
-    def __init__(self, num_rounds, temperature):
+    def __init__(self, num_rounds, temperature, num_rounds_to_enrich):
         self.num_rounds = num_rounds
         self.temperature = temperature
-
+        self.num_rounds_to_enrich = num_rounds_to_enrich
 # tag::mcts-signature[]
     def select_move(self, game_state):
         # print('selecting')
@@ -166,6 +166,14 @@ class MCTSAgent():
             winner = None
 
         return winner
+
+    def enrich_stats(self, game_state):
+        root = MCTSNode(game_state)
+        for i in range(self.num_rounds_to_enrich):
+            winner = self.simulate_random_game(root.game_state)
+            root.record_win(winner)
+        win_pct = root.win_counts[1]/(root.win_counts[1]+root.win_counts[0])
+        return win_pct
 
 if __name__ == '__main__':
     f = Board.Field()

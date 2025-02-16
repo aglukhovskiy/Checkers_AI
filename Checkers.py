@@ -38,10 +38,10 @@ class Checkers:
     def next_turn_by_hand(self, move):
         if self.board.game_is_on == 1 :
             if self.board.whites_turn == 1:
-                # print(self.board.available_moves(), self.board.whites_turn)
+                print(self.board.available_moves(), self.board.whites_turn)
                 self.board.move(opp = self.opp, move=move)
             elif self.board.whites_turn == 0:
-                # print(self.board.available_moves(), self.board.whites_turn)
+                print(self.board.available_moves(), self.board.whites_turn)
                 self.board.move(opp = self.opp, move=move)
         if len(self.board.available_moves()[0]) == 0:
             self.board.game_is_on = 0
@@ -52,20 +52,22 @@ class Checkers:
 
 if __name__ == '__main__':
     f = Board.Field()
-    bot = Bot.Bot(the_depth=2, the_board=f)
+    # bot = Bot.Bot(the_depth=2, the_board=f)
+    bot = Bot.BotNN(the_board=f)
     encoder = Encoder.OnePlaneEncoder()
 
-    match = Checkers(control='command', opp='bot', board=f)
+    match = Checkers(control='command', opp=bot, board=f)
 
-    match.next_turn(move='e3f4')
-    match.next_turn(move='d6e5')
-    match.next_turn(move='e3f4')
+    # match.next_turn(move='e3f4')
+    # match.next_turn(move='d6e5')
+    # match.next_turn(move='e3f4')
     # match.next_turn()
     # match.next_turn()
-    encoder.show_board(f)
-    print(encoder.encode(f)[0][::-1])
+    # encoder.show_board(f)
+    # print(encoder.encode(f)[0][::-1])
+    # print(match.board.field)
 
 
 
-    # while match.board.game_is_on == 1:
-    #     match.next_turn()
+    while match.board.game_is_on == 1:
+        match.next_turn()

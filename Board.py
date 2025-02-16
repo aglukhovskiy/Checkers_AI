@@ -269,7 +269,7 @@ class Field:
             original_spots = copy.deepcopy(self.field)
             original_turn = copy.deepcopy(self.whites_turn)
             original_game_is_on = copy.deepcopy(self.game_is_on)
-            self.move(self.white_num_to_colour[self.whites_turn], opp=opp, move=move)
+            self.move(opp=opp, move=move)
             answer.append(self.field)
             self.field = original_spots
             self.whites_turn = original_turn

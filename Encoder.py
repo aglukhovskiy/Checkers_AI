@@ -10,19 +10,21 @@ class OnePlaneEncoder():
     def __init__(self):
         self.num_planes = 1
 
-    def encode(self, board):  # <2>
+    def encode(self, board, field=None):  # <2>
         board_matrix = np.zeros((1,8,8))
-        whites_turn = board.whites_turn
 
         # matrix_string = "/n".join(" ".join(str(num) for num in row) for row in board_matrix)
 
         for r in range(8):
             for c in range(8):
-                field = self.num_to_column[c+1]+str(r+1)
-                piece = board.field[field]
+                sel_field = self.num_to_column[c+1]+str(r+1)
+                if field:
+                    piece = field[sel_field]
+                else:
+                    piece = board.field[sel_field]
                 if piece is None:
                     continue
-                if piece.white == whites_turn:
+                if piece.white == 1:
                     if isinstance(piece, King):
                         board_matrix[0, r, c] = 3
                     else:
