@@ -1,11 +1,8 @@
-import random
-import Bot
+from Bot import Bot
 import Board
-import copy
-import numpy as np
 
-import Encoder
-from Encoder import OnePlaneEncoder
+# import Encoder
+from encoders.oneplane import OnePlaneEncoder
 
 class Checkers:
 
@@ -13,7 +10,6 @@ class Checkers:
         self.control = control
         self.opp = opp
         self.opp_colour = 'black' # 0: black
-        # self.multiple_jumping_piece = []
         self.board = board
 
     def next_turn(self, move = None):
@@ -26,8 +22,14 @@ class Checkers:
         elif self.board.game_is_on == 1 :
             if self.board.whites_turn == 1:
                 self.board.move(opp = self.opp, move=move)
+                while self.board.whites_turn == 1:
+                    random_move = self.board.available_moves()[0]
+                    self.board.move(opp=self.opp, move=random_move)
             elif self.board.whites_turn == 0:
                 self.board.move(opp = self.opp, move=move)
+                while self.board.whites_turn == 0:
+                    random_move = self.board.available_moves()[0]
+                    self.board.move(opp=self.opp, move=random_move)
         elif self.board.game_is_on == 0:
             # print('game over')
             return 'game over'
@@ -38,10 +40,12 @@ class Checkers:
     def next_turn_by_hand(self, move):
         if self.board.game_is_on == 1 :
             if self.board.whites_turn == 1:
-                print(self.board.available_moves(), self.board.whites_turn)
+                if self.control=='command':
+                    print(self.board.available_moves(), self.board.whites_turn)
                 self.board.move(opp = self.opp, move=move)
             elif self.board.whites_turn == 0:
-                print(self.board.available_moves(), self.board.whites_turn)
+                if self.control=='command':
+                    print(self.board.available_moves(), self.board.whites_turn)
                 self.board.move(opp = self.opp, move=move)
         if len(self.board.available_moves()[0]) == 0:
             self.board.game_is_on = 0
@@ -52,9 +56,9 @@ class Checkers:
 
 if __name__ == '__main__':
     f = Board.Field()
-    # bot = Bot.Bot(the_depth=2, the_board=f)
-    bot = Bot.BotNN(the_board=f)
-    encoder = Encoder.OnePlaneEncoder()
+    bot = Bot(the_depth=2, the_board=f)
+    # bot = Bot.BotNN(the_board=f)
+    encoder = OnePlaneEncoder()
 
     match = Checkers(control='command', opp=bot, board=f)
 
@@ -66,7 +70,6 @@ if __name__ == '__main__':
     # encoder.show_board(f)
     # print(encoder.encode(f)[0][::-1])
     # print(match.board.field)
-
 
 
     while match.board.game_is_on == 1:

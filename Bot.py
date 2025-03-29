@@ -1,6 +1,5 @@
-import random
 import Board
-from Encoder import OnePlaneEncoder
+from encoders.oneplane import OnePlaneEncoder
 import numpy as np
 from keras.models import load_model
 
@@ -11,6 +10,9 @@ class Bot():
         self.board = the_board
         self.depth = the_depth
         self.colour = 'black'
+
+    def __str__(self):
+        return 'Bot class'
 
     def get_next_move(self):
         # return random.choice(self.board.available_moves(colour=self.colour)[0])
@@ -156,6 +158,9 @@ class BotNN(Bot):
         self.board = the_board
         self.colour = 'black'
         self.model = load_model('model_1.keras')
+
+    def __str__(self):
+        return 'Bot class'
 
     def get_next_move(self):
         # return random.choice(self.board.available_moves(colour=self.colour)[0])

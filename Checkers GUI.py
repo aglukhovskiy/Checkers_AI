@@ -100,9 +100,9 @@ for i in range(8):
 
 f = Board.Field()
 # bot = Checkers.Bot.Bot(the_depth=3, the_board=f)
-bot = Checkers.Bot.BotNN(the_board=f)
-match = Checkers.Checkers(opp=bot, board=f, control='gui')
-# match = Checkers.Checkers(opp='bot', board=f, control='gui')
+# bot = Checkers.Bot.BotNN(the_board=f)
+# match = Checkers.Checkers(opp=bot, board=f, control='gui')
+match = Checkers.Checkers(opp='bot', board=f, control='gui')
 
 for i,j in match.board.field.items():
     k=i

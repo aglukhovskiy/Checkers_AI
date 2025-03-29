@@ -1,11 +1,8 @@
-
-import Bot
 import numpy as np
 import Checkers
 import Board
-from Checkers import Bot
 from mcts import MCTSAgent
-import Encoder
+from encoders import oneplane
 from utils import move_text_to_point
 
 
@@ -40,8 +37,8 @@ if __name__ == '__main__':
     xs = []
     ys = []
     zs = []
-    for i in range(4):
-        x, y, z = generate_game(rounds=50, max_moves=20, temperature=3, num_rounds_to_enrich=100)
+    for i in range(2):
+        x, y, z = generate_game(rounds=50, max_moves=30, temperature=3, num_rounds_to_enrich=100)
         xs.append(x)
         ys.append(y)
         zs.append(z)
@@ -50,7 +47,7 @@ if __name__ == '__main__':
         y = np.concatenate(ys)
         z = np.concatenate(zs)
 
-        np.save('features_50r_15m_100_enr.npy', x)  # <4>
-        np.save('label_50r_15m_100_enr.npy', y)
-        np.save('whites_turn_50r_15m_100_enr.npy', z)
+        np.save('train_results/features_50r_30m_100_enr.npy', x)  # <4>
+        np.save('train_results/label_50r_30m_100_enr.npy', y)
+        np.save('train_results/whites_turn_50r_30m_100_enr.npy', z)
         print('end')

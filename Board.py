@@ -1,4 +1,3 @@
-import Bot
 import copy
 import numpy as np
 
@@ -72,6 +71,16 @@ class Field:
             elif isinstance(j, Piece) and j.colour == 'black':
                 p_b += 1
         return [p_w, p_b, k_w, k_b]
+
+    def compute_results(self):
+        pieces = self.get_number_of_pieces_and_kings()
+        res_dif = pieces[0]+pieces[2]-pieces[1]-pieces[3]
+        if res_dif>0:
+            return 1, res_dif
+        elif res_dif<0:
+            return -1, res_dif
+        else:
+            return 0, res_dif
 
     def available_moves(self, colour=None):
 
@@ -189,14 +198,14 @@ class Field:
             self.game_is_on = 0
             return 'game over'
         if control=='gui':
-            if isinstance(opp, Bot.Bot) and colour==opp.colour: #Тут будет ошибка вызова метода у None
+            if str(opp) == 'Bot class' and colour==opp.colour: #Тут будет ошибка вызова метода у None
                 self.move_text  = opp.get_next_move()
             else:
                 self.move_text = move
         elif control=='command':
             if move is not None:
                 self.move_text = move
-            elif isinstance(opp, Bot.Bot) and colour==opp.colour:
+            elif str(opp) == 'Bot class' and colour==opp.colour:
                 # self.move_text = random.choice(self.available_moves(colour=colour)[0])
                 self.move_text = opp.get_next_move()
             else:

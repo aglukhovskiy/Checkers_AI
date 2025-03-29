@@ -1,5 +1,4 @@
-# from Board import Field
-from Board import King, Piece
+from Board import King
 import numpy as np
 
 
@@ -11,7 +10,7 @@ class OnePlaneEncoder():
         self.num_planes = 1
 
     def encode(self, board, field=None):  # <2>
-        board_matrix = np.zeros((1,8,8))
+        board_matrix = np.zeros((self.num_planes,8,8))
 
         # matrix_string = "/n".join(" ".join(str(num) for num in row) for row in board_matrix)
 
@@ -67,3 +66,9 @@ class OnePlaneEncoder():
 
         for row in matrix_list_concat[::-1]:
             print(" ".join(self.symbols_change(num) for num in row))
+
+    def shape(self):
+        return self.num_planes, 8, 8
+
+def create():
+    return OnePlaneEncoder()
