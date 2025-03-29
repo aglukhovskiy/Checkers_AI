@@ -1,6 +1,6 @@
 from Bot import Bot
 import Board
-
+import random
 # import Encoder
 from encoders.oneplane import OnePlaneEncoder
 
@@ -22,14 +22,8 @@ class Checkers:
         elif self.board.game_is_on == 1 :
             if self.board.whites_turn == 1:
                 self.board.move(opp = self.opp, move=move)
-                while self.board.whites_turn == 1:
-                    random_move = self.board.available_moves()[0]
-                    self.board.move(opp=self.opp, move=random_move)
             elif self.board.whites_turn == 0:
                 self.board.move(opp = self.opp, move=move)
-                while self.board.whites_turn == 0:
-                    random_move = self.board.available_moves()[0]
-                    self.board.move(opp=self.opp, move=random_move)
         elif self.board.game_is_on == 0:
             # print('game over')
             return 'game over'

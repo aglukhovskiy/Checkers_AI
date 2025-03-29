@@ -1,4 +1,6 @@
 """Policy gradient learning."""
+import random
+
 import numpy as np
 from keras import backend as K
 from copy import deepcopy
@@ -52,13 +54,17 @@ class PolicyAgent():
     def select_move(self, game):
         moves = game.board.available_moves()[0]
         num_moves = len(moves)
-
+        if num_moves==0:
+            game.board.game_is_on=1
+            return
         simulated_boards = []
         board_tensors = []
         x_list = []
         for i in range(num_moves):
             simulated_board = deepcopy(game)
             simulated_board.next_turn(move=moves[i])
+            while simulated_board.board.whites_turn == game.board.whites_turn:
+                simulated_board.next_turn(move=simulated_board.board.available_moves()[0][0])
             simulated_boards.append(simulated_board)
             board_tensor = self._encoder.encode(simulated_board.board)
             board_tensors.append(board_tensor)
@@ -90,7 +96,7 @@ class PolicyAgent():
         if self._collector is not None:
             self._collector.record_decision(
                 state=self._encoder.encode(game.board),
-                action=move,
+                # action=move,
                 action_result=board_tensors[ranked_moves[0]]
             )
 
@@ -99,8 +105,6 @@ class PolicyAgent():
     def serialize(self, h5file):
         h5file.create_group('encoder')
         h5file['encoder'].attrs['name'] = self._encoder.name()
-        h5file['encoder'].attrs['board_width'] = self._encoder.board_width
-        h5file['encoder'].attrs['board_height'] = self._encoder.board_height
         h5file.create_group('model')
         kerasutil.save_model_to_hdf5_group(self._model, h5file['model'])
 

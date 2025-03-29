@@ -14,7 +14,7 @@ import Board
 from collections import namedtuple
 
 from rl import large
-from rl.experience import ExperienceCollector
+from rl.experience import ExperienceCollector, combine_experience
 
 input_shape = (8,8,1)
 
@@ -80,7 +80,7 @@ def simulate_game(white_player, black_player):
         0: black_player,
     }
     moves_cntr = 0
-    while game.board.game_is_on == 1 or moves_cntr<100:
+    while game.board.game_is_on == 1 and moves_cntr<3:
         moves_cntr+=1
         next_move = agents[game.board.whites_turn].select_move(game)
         moves.append(next_move)
@@ -102,8 +102,21 @@ def simulate_game(white_player, black_player):
 res = simulate_game(new_agent1, new_agent2)
 print('RES')
 print(res)
+# collector1.complete_episode(reward=1)
+# print(collector1)
 
-def do_self_play(board_size, agent_filename,
+# experience = combine_experience([collector1])
+
+# print(experience)
+# print(experience.states)
+# print(experience.action_results)
+# print(experience.rewards)
+# print(experience.advantages)
+
+# with h5py.File('test.hdf5', 'w') as experience_outf:
+#     experience.serialize(experience_outf)
+
+def do_self_play(agent_filename,
                  num_games, temperature,
                  experience_filename,
                  gpu_frac):
@@ -132,7 +145,7 @@ def do_self_play(board_size, agent_filename,
             black_player, white_player = agent1, agent2
         else:
             white_player, black_player = agent1, agent2
-        game_record = simulate_game(black_player, white_player, board_size)
+        game_record = simulate_game(black_player, white_player)
         if game_record.winner == color1:
             print('Agent 1 wins.')
             collector1.complete_episode(reward=1)
@@ -143,8 +156,12 @@ def do_self_play(board_size, agent_filename,
             collector1.complete_episode(reward=-1)
         color1 = color1.other
 
-    experience = rl.combine_experience([collector1, collector2])
+    experience = combine_experience([collector1, collector2])
     print('Saving experience buffer to %s\n' % experience_filename)
     with h5py.File(experience_filename, 'w') as experience_outf:
         experience.serialize(experience_outf)
 
+
+# do_self_play(agent_filename='test.hdf5', num_games=2, temperature=0,
+#                  experience_filename=,
+#                  gpu_frac=0)
