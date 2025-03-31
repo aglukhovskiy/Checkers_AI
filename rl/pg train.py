@@ -21,7 +21,7 @@ from rl.experience import ExperienceCollector, combine_experience, load_experien
 
 # random.seed(42)
 
-input_shape = (8,8,1)
+input_shape = (8,8,6)
 
 layers = [
         ZeroPadding2D((3, 3), input_shape=input_shape),
@@ -41,7 +41,7 @@ def create_mlp():
     model.add(Dense(1, activation="linear"))
     return model
 
-encoder = encoders.get_encoder_by_name('oneplane_singlesided')
+encoder = encoders.get_encoder_by_name('sixplane')
 
 # model = Sequential()
 # # opt = Adam(lr=1e-3, decay=1e-3 / 200)
@@ -54,12 +54,6 @@ encoder = encoders.get_encoder_by_name('oneplane_singlesided')
 model = create_mlp()
 # model.compile(loss="mean_absolute_error", optimizer='SGD', metrics=[metrics.MeanAbsoluteError()])
 model.compile(loss="mse", optimizer='SGD', metrics=[metrics.BinaryCrossentropy()])
-
-# Создаем Mean метрику с возможностью уменьшения
-# reward_metric = tf.keras.metrics.Mean(name='reward')
-# reward_metric.accumulation = 'sum'
-
-# model.summary()
 
 new_agent1 = PolicyAgent(model = model, encoder = encoder)
 new_agent2 = PolicyAgent(model = model, encoder = encoder)
@@ -125,7 +119,7 @@ def simulate_game(white_player, black_player, game_num_for_record):
 # with h5py.File('test.hdf5', 'w') as experience_outf:
 #     experience.serialize(experience_outf)
 
-with h5py.File('model_test.hdf5', 'w') as model_outf:
+with h5py.File('model_test_6_plane.hdf5', 'w') as model_outf:
     new_agent1.serialize(model_outf)
 
 # agent1 = load_policy_agent(h5py.File('model_test.hdf5'))
@@ -195,9 +189,11 @@ def do_self_play(agent_filename,
     with h5py.File(experience_filename+'_{}_games.hdf5'.format(num_games), 'w') as experience_outf:
         experience.serialize(experience_outf)
 
-do_self_play(agent_filename='model_test.hdf5', num_games=100, temperature=0,
-                 experience_filename='test',
+do_self_play(agent_filename='model_test_6_plane.hdf5', num_games=300, temperature=0,
+                 experience_filename='test_6_plane',
                  gpu_frac=0)
+
+
 
 # new_agent1.train(load_experience(h5py.File('test.hdf5')))
 # agent1.train(load_experience(h5py.File('test.hdf5')))

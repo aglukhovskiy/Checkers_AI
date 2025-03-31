@@ -33,7 +33,8 @@ class ExperienceCollector:
 
     def record_decision(self, state, action_result, white_turns, game_nums, estimated_value=0):
         self._current_episode_states.append(state)
-        # self._current_episode_actions.append(action)
+        # Преобразуем action_result в правильную размерность (8, 8, 6)
+        action_result = np.transpose(action_result, (1, 2, 0))
         self._current_episode_action_results.append(action_result)
         self._current_episode_estimated_values.append(estimated_value)
         self._current_episode_white_turns.append(white_turns)

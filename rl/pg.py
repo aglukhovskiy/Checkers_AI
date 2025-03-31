@@ -75,7 +75,8 @@ class PolicyAgent():
             simulated_boards.append(simulated_board)
             board_tensor = self._encoder.encode(simulated_board.board)
             board_tensors.append(board_tensor)
-            x = np.array([board_tensor])
+            # Преобразуем из (6, 8, 8) в (8, 8, 6)
+            x = np.transpose(board_tensor, (1, 2, 0)).reshape(1, 8, 8, 6)
             x_list.append(x)
         # print('ending cicle')
         if np.random.random() < self._temperature:
@@ -83,7 +84,7 @@ class PolicyAgent():
             move_probs = np.ones(num_moves) / num_moves
         else:
             # Follow our current policy.
-            move_probs = [self._model.predict(x[0], verbose=False)[0][0] for x in x_list]
+            move_probs = [self._model.predict(x, verbose=False)[0][0] for x in x_list]
 
         # Prevent move probs from getting stuck at 0 or 1.
         eps = 1e-5
@@ -128,14 +129,13 @@ class PolicyAgent():
 
         n = experience.action_results.shape[0]
         # Translate the actions/rewards.
-        # num_moves = self._encoder.board_width * self._encoder.board_height
         y = np.zeros(n)
         for i in range(n):
             reward = experience.rewards[i]
             y[i] = reward
 
-        # Преобразуем данные из channels_first в channels_last
-        x = np.transpose(experience.action_results, (0, 2, 3, 1))
+        # Данные уже в правильной размерности (None, 8, 8, 6)
+        x = experience.action_results
 
         self._model.fit(
             x=x, batch_size=batch_size, y=y,

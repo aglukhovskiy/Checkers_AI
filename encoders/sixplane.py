@@ -42,6 +42,32 @@ class SixPlaneEncoder():
                         board_matrix[2, r, c] = 1
         return board_matrix
 
+    def encode_to_show(self, board, field=None):  # <2>
+        board_matrix = np.zeros((self.num_planes,8,8))
+
+        # matrix_string = "/n".join(" ".join(str(num) for num in row) for row in board_matrix)
+
+        for r in range(8):
+            for c in range(8):
+                sel_field = self.num_to_column[c+1]+str(r+1)
+                if field:
+                    piece = field[sel_field]
+                else:
+                    piece = board.field[sel_field]
+                if piece is None:
+                    continue
+                if piece.white == 1:
+                    if isinstance(piece, King):
+                        board_matrix[0, r, c] = 3
+                    else:
+                        board_matrix[0, r, c] = 1
+                else:
+                    if isinstance(piece, King):
+                        board_matrix[0, r, c] = -3
+                    else:
+                        board_matrix[0, r, c] = -1
+        return board_matrix
+
     def symbols_change(self, symbol, whites_turn):
         turn_sign = 1
         if whites_turn==0:
@@ -64,10 +90,10 @@ class SixPlaneEncoder():
 
     def show_board(self, board):
         if board.whites_turn==1:
-            for row in self.encode(board)[0][::-1]:
+            for row in self.encode_to_show(board)[0][::-1]:
                 print(" ".join(self.symbols_change(num, board.whites_turn) for num in row))
         else:
-            for row in self.encode(board)[0]*-1:
+            for row in self.encode_to_show(board)[0]*-1:
                 print(" ".join(self.symbols_change(num, board.whites_turn) for num in row[::-1]))
 
     def show_board_from_matrix(self, matrix, whites_turn, fpv=False):

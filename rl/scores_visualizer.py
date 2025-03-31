@@ -6,12 +6,14 @@ import encoders
 import Board
 from Checkers import Checkers
 
-encoder = encoders.get_encoder_by_name('oneplane_singlesided')
+# encoder = encoders.get_encoder_by_name('oneplane_singlesided')
+encoder = encoders.get_encoder_by_name('sixplane')
 
 # exp = load_experience(h5py.File('test_1000_games.hdf5'))
-agent1 = load_policy_agent(h5py.File('model_test.hdf5'))
-agent2 = load_policy_agent(h5py.File('model_test.hdf5'))
-agent2.train(load_experience(h5py.File('test_1000_games.hdf5')), lr=0.005)
+agent1 = load_policy_agent(h5py.File('model_test_6_plane.hdf5'))
+agent2 = load_policy_agent(h5py.File('model_test_6_plane.hdf5'))
+# agent2.train(load_experience(h5py.File('test_1000_games.hdf5')), lr=0.005)
+agent2.train(load_experience(h5py.File('test_6_plane_300_games.hdf5')), lr=0.01)
 
 equal_board = Board.Field()
 print('-------')
@@ -71,22 +73,38 @@ board_w_minus_10.field['g1'] = None
 board_w_minus_10.field['g3'] = None
 encoder.show_board(board_w_minus_10)
 
-predict_equal = agent1._model.predict(np.array([encoder.encode(equal_board)])[0], verbose=False)
-predict_w_plus_2 = agent1._model.predict(np.array([encoder.encode(board_w_plus_2)])[0], verbose=False)
-predict_w_plus_6 = agent1._model.predict(np.array([encoder.encode(board_w_plus_6)])[0], verbose=False)
-predict_w_plus_10 = agent1._model.predict(np.array([encoder.encode(board_w_plus_10)])[0], verbose=False)
-predict_w_minus_2 = agent1._model.predict(np.array([encoder.encode(board_w_minus_2)])[0], verbose=False)
-predict_w_minus_6 = agent1._model.predict(np.array([encoder.encode(board_w_minus_6)])[0], verbose=False)
-predict_w_minus_10 = agent1._model.predict(np.array([encoder.encode(board_w_minus_10)])[0], verbose=False)
+# predict_equal = agent1._model.predict(np.array([encoder.encode(equal_board)])[0], verbose=False)
+# predict_w_plus_2 = agent1._model.predict(np.array([encoder.encode(board_w_plus_2)])[0], verbose=False)
+# predict_w_plus_6 = agent1._model.predict(np.array([encoder.encode(board_w_plus_6)])[0], verbose=False)
+# predict_w_plus_10 = agent1._model.predict(np.array([encoder.encode(board_w_plus_10)])[0], verbose=False)
+# predict_w_minus_2 = agent1._model.predict(np.array([encoder.encode(board_w_minus_2)])[0], verbose=False)
+# predict_w_minus_6 = agent1._model.predict(np.array([encoder.encode(board_w_minus_6)])[0], verbose=False)
+# predict_w_minus_10 = agent1._model.predict(np.array([encoder.encode(board_w_minus_10)])[0], verbose=False)
+#
+# trained_predict_equal = agent2._model.predict(np.array([encoder.encode(equal_board)])[0], verbose=False)
+# trained_predict_w_plus_2 = agent2._model.predict(np.array([encoder.encode(board_w_plus_2)])[0], verbose=False)
+# trained_predict_w_plus_6 = agent2._model.predict(np.array([encoder.encode(board_w_plus_6)])[0], verbose=False)
+# trained_predict_w_plus_10 = agent2._model.predict(np.array([encoder.encode(board_w_plus_10)])[0], verbose=False)
+# trained_predict_w_minus_2 = agent2._model.predict(np.array([encoder.encode(board_w_minus_2)])[0], verbose=False)
+# trained_predict_w_minus_6 = agent2._model.predict(np.array([encoder.encode(board_w_minus_6)])[0], verbose=False)
+# trained_predict_w_minus_10 = agent2._model.predict(np.array([encoder.encode(board_w_minus_10)])[0], verbose=False)
 
 
-trained_predict_equal = agent2._model.predict(np.array([encoder.encode(equal_board)])[0], verbose=False)
-trained_predict_w_plus_2 = agent2._model.predict(np.array([encoder.encode(board_w_plus_2)])[0], verbose=False)
-trained_predict_w_plus_6 = agent2._model.predict(np.array([encoder.encode(board_w_plus_6)])[0], verbose=False)
-trained_predict_w_plus_10 = agent2._model.predict(np.array([encoder.encode(board_w_plus_10)])[0], verbose=False)
-trained_predict_w_minus_2 = agent2._model.predict(np.array([encoder.encode(board_w_minus_2)])[0], verbose=False)
-trained_predict_w_minus_6 = agent2._model.predict(np.array([encoder.encode(board_w_minus_6)])[0], verbose=False)
-trained_predict_w_minus_10 = agent2._model.predict(np.array([encoder.encode(board_w_minus_10)])[0], verbose=False)
+predict_equal = agent1._model.predict(np.transpose(encoder.encode(equal_board), (1, 2, 0)).reshape(1, 8, 8, 6), verbose=False)
+predict_w_plus_2 = agent1._model.predict(np.transpose(encoder.encode(board_w_plus_2), (1, 2, 0)).reshape(1, 8, 8, 6), verbose=False)
+predict_w_plus_6 = agent1._model.predict(np.transpose(encoder.encode(board_w_plus_6), (1, 2, 0)).reshape(1, 8, 8, 6), verbose=False)
+predict_w_plus_10 = agent1._model.predict(np.transpose(encoder.encode(board_w_plus_10), (1, 2, 0)).reshape(1, 8, 8, 6), verbose=False)
+predict_w_minus_2 = agent1._model.predict(np.transpose(encoder.encode(board_w_minus_2), (1, 2, 0)).reshape(1, 8, 8, 6), verbose=False)
+predict_w_minus_6 = agent1._model.predict(np.transpose(encoder.encode(board_w_minus_6), (1, 2, 0)).reshape(1, 8, 8, 6), verbose=False)
+predict_w_minus_10 = agent1._model.predict(np.transpose(encoder.encode(board_w_minus_10), (1, 2, 0)).reshape(1, 8, 8, 6), verbose=False)
+
+trained_predict_equal = agent2._model.predict(np.transpose(encoder.encode(equal_board), (1, 2, 0)).reshape(1, 8, 8, 6), verbose=False)
+trained_predict_w_plus_2 = agent2._model.predict(np.transpose(encoder.encode(board_w_plus_2), (1, 2, 0)).reshape(1, 8, 8, 6), verbose=False)
+trained_predict_w_plus_6 = agent2._model.predict(np.transpose(encoder.encode(board_w_plus_6), (1, 2, 0)).reshape(1, 8, 8, 6), verbose=False)
+trained_predict_w_plus_10 = agent2._model.predict(np.transpose(encoder.encode(board_w_plus_10), (1, 2, 0)).reshape(1, 8, 8, 6), verbose=False)
+trained_predict_w_minus_2 = agent2._model.predict(np.transpose(encoder.encode(board_w_minus_2), (1, 2, 0)).reshape(1, 8, 8, 6), verbose=False)
+trained_predict_w_minus_6 = agent2._model.predict(np.transpose(encoder.encode(board_w_minus_6), (1, 2, 0)).reshape(1, 8, 8, 6), verbose=False)
+trained_predict_w_minus_10 = agent2._model.predict(np.transpose(encoder.encode(board_w_minus_10), (1, 2, 0)).reshape(1, 8, 8, 6), verbose=False)
 
 print('Previous model')
 print('---------------')
