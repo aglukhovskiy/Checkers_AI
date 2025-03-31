@@ -74,13 +74,13 @@ class Field:
 
     def compute_results(self):
         pieces = self.get_number_of_pieces_and_kings()
-        res_dif = pieces[0]+pieces[2]-pieces[1]-pieces[3]
+        res_dif = pieces[0]+3*pieces[2]-pieces[1]-3*pieces[3]
         if res_dif>0:
             return 1, res_dif
         elif res_dif<0:
-            return -1, res_dif
-        else:
             return 0, res_dif
+        else:
+            return 0.5, res_dif
 
     def available_moves(self, colour=None):
 

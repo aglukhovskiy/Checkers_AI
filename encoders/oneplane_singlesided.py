@@ -2,7 +2,7 @@ from Board import King
 import numpy as np
 
 
-class OnePlaneEncoder():
+class OnePlaneEncoderSingleSided():
 
     num_to_column = dict(zip([1, 2, 3, 4, 5, 6, 7, 8], ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']))
 
@@ -36,26 +36,50 @@ class OnePlaneEncoder():
                         board_matrix[0, r, c] = -3
                     else:
                         board_matrix[0, r, c] = -1
-        return board_matrix
+        if board.whites_turn==1:
+            return board_matrix
+        else:
+            return board_matrix[::-1]*-1
 
-    def symbols_change(self, symbol):
+    def symbols_change(self, symbol, whites_turn):
+        turn_sign = 1
+        if whites_turn==0:
+            turn_sign = -1
         if symbol == 0.0:
             return ' . '
-        elif symbol == 1.0:
+        elif symbol == -0.0:
+            return ' . '
+        elif symbol*turn_sign == 1.0:
             return ' x '
-        elif symbol == 3.0:
+        elif symbol*turn_sign == 3.0:
             return ' X '
-        elif symbol == -1.0:
+        elif symbol*turn_sign == -1.0:
             return ' o '
-        elif symbol == -3.0:
+        elif symbol*turn_sign == -3.0:
             return ' O '
         elif symbol == 7.0:
             # return '  |  '
             return '  |@ '
 
     def show_board(self, board):
-        for row in self.encode(board)[0][::-1]:
-            print(" ".join(self.symbols_change(num) for num in row))
+        if board.whites_turn==1:
+            for row in self.encode(board)[0][::-1]:
+                print(" ".join(self.symbols_change(num, board.whites_turn) for num in row))
+        else:
+            for row in self.encode(board)[0]*-1:
+                print(" ".join(self.symbols_change(num, board.whites_turn) for num in row[::-1]))
+
+    def show_board_from_matrix(self, matrix, whites_turn, fpv=False):
+        if whites_turn==1:
+            for row in matrix[0][::-1]:
+                print(" ".join(self.symbols_change(num, whites_turn) for num in row))
+        else:
+            if fpv:
+                for row in matrix[0]*-1:
+                    print(" ".join(self.symbols_change(num, whites_turn) for num in row[::-1]))
+            else:
+                for row in matrix[0][::-1]*-1:
+                    print(" ".join(self.symbols_change(num, whites_turn) for num in row))
 
     def show_several_boards(self, boards):
         matrix_list = []
@@ -74,4 +98,4 @@ class OnePlaneEncoder():
         return self.num_planes, 8, 8
 
 def create():
-    return OnePlaneEncoder()
+    return OnePlaneEncoderSingleSided()

@@ -174,7 +174,7 @@ class BotNN(Bot):
             scores_list = []
             for i in potential_spots:
                 matrix=encoder.encode(board=None, field=i)
-                predict = self.model.predict(matrix.reshape(1, 8, 8))[0][0]
+                predict = self.model.predict(matrix.reshape(8, 8, 1))[0][0]
                 scores_list.append(predict)
             if self.board.whites_turn==1:
                 return possible_moves[np.argmax(scores_list)]
