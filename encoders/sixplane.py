@@ -2,15 +2,15 @@ from Board import King
 import numpy as np
 
 
-class OnePlaneEncoderSingleSided():
+class SixPlaneEncoder():
 
     num_to_column = dict(zip([1, 2, 3, 4, 5, 6, 7, 8], ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']))
 
     def __init__(self):
-        self.num_planes = 1
+        self.num_planes = 6
 
     def name(self):  # <1>
-        return 'oneplane_singlesided'
+        return 'sixplane'
 
     def encode(self, board, field=None):  # <2>
         board_matrix = np.zeros((self.num_planes,8,8))
@@ -26,20 +26,21 @@ class OnePlaneEncoderSingleSided():
                     piece = board.field[sel_field]
                 if piece is None:
                     continue
+                if board.whites_turn==1:
+                    board_matrix[4] = 1
+                elif board.whites_turn==0:
+                    board_matrix[5] = 1
                 if piece.white == 1:
                     if isinstance(piece, King):
-                        board_matrix[0, r, c] = 3
+                        board_matrix[1, r, c] = 1
                     else:
                         board_matrix[0, r, c] = 1
                 else:
                     if isinstance(piece, King):
-                        board_matrix[0, r, c] = -3
+                        board_matrix[3, r, c] = 1
                     else:
-                        board_matrix[0, r, c] = -1
-        if board.whites_turn==1:
-            return board_matrix
-        else:
-            return board_matrix[::-1]*-1
+                        board_matrix[2, r, c] = 1
+        return board_matrix
 
     def symbols_change(self, symbol, whites_turn):
         turn_sign = 1
@@ -98,4 +99,4 @@ class OnePlaneEncoderSingleSided():
         return self.num_planes, 8, 8
 
 def create():
-    return OnePlaneEncoderSingleSided()
+    return SixPlaneEncoder()

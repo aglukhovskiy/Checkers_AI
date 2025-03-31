@@ -11,7 +11,7 @@ encoder = encoders.get_encoder_by_name('oneplane_singlesided')
 # exp = load_experience(h5py.File('test_1000_games.hdf5'))
 agent1 = load_policy_agent(h5py.File('model_test.hdf5'))
 agent2 = load_policy_agent(h5py.File('model_test.hdf5'))
-agent2.train(load_experience(h5py.File('test_1000_games.hdf5')), lr=0.01)
+agent2.train(load_experience(h5py.File('test_1000_games.hdf5')), lr=0.005)
 
 equal_board = Board.Field()
 print('-------')
