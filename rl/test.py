@@ -154,13 +154,12 @@ class PolicyAgent:
 
     def select_move(self, game, game_num_for_record):
         """Выбирает ход на основе текущего состояния игры"""
-        moves = game.get_possible_moves()
-        print(moves)
+        moves = game.available_moves()[0]
         num_moves = len(moves)
 
         if num_moves == 0:
             game.game_is_on = 0
-            return
+            return None
 
         simulated_boards = []
         board_tensors = []
@@ -168,8 +167,56 @@ class PolicyAgent:
 
         for i in range(num_moves):
             simulated_game = deepcopy(game)
-            # Выполняем ход
-            simulated_game.next_turn(move_list=moves[i])
+            move = moves[i]
+
+            # Выполняем текущий ход
+            is_capture = move[2] is not None
+            simulated_game.move_piece(move, capture_move=is_capture)
+
+            # Проверяем, есть ли множественное взятие
+            next_pos = (move[4], move[5])
+            while is_capture:
+                next_captures = simulated_game.get_first_capture_moves(next_pos)
+                if next_captures:
+                    # Для симуляции просто выбираем первый возможный ход
+                    next_move = next_captures[0]
+                    is_capture = next_move[2] is not None
+                    simulated_game.move_piece(next_move, capture_move=is_capture)
+                    next_pos = (next_move[4], next_move[5])
+                else:
+                    break
+
+            # Переходим к следующему игроку
+            simulated_game.current_player = -simulated_game.current_player
+            simulated_game.whites_turn = 1 if simulated_game.current_player == 1 else 0
+
+            # Если после хода ход снова того же игрока (множественное взятие),
+            # выполняем случайные ходы, пока ход не перейдет к другому игроку
+            while simulated_game.current_player != game.current_player and simulated_game.game_is_on == 1:
+                available_moves = simulated_game.available_moves()[0]
+                if not available_moves:
+                    break
+                random_move = random.choice(available_moves)
+                is_capture = random_move[2] is not None
+                simulated_game.move_piece(random_move, capture_move=is_capture)
+
+                # Проверяем множественное взятие для случайного хода
+                if is_capture:
+                    next_pos = (random_move[4], random_move[5])
+                    continue_capture = True
+                    while continue_capture:
+                        next_captures = simulated_game.get_first_capture_moves(next_pos)
+                        if next_captures:
+                            next_move = next_captures[0]  # Берем первый возможный ход
+                            is_capture = next_move[2] is not None
+                            simulated_game.move_piece(next_move, capture_move=is_capture)
+                            next_pos = (next_move[4], next_move[5])
+                        else:
+                            continue_capture = False
+
+                simulated_game.current_player = -simulated_game.current_player
+                simulated_game.whites_turn = 1 if simulated_game.current_player == 1 else 0
+
             simulated_boards.append(simulated_game)
             board_tensor = self._encoder.encode(simulated_game)
             board_tensors.append(board_tensor)
@@ -203,7 +250,7 @@ class PolicyAgent:
         # Записываем решение, если есть коллектор
         if self._collector is not None:
             self._collector.record_decision(
-                state=self._encoder.encode(game.board),
+                state=self._encoder.encode(game),
                 action_result=board_tensors[ranked_moves[0]],
                 white_turns=1 if game.current_player == 1 else 0,
                 game_nums=game_num_for_record
@@ -487,9 +534,8 @@ def play_against_bot(agent_filename):
             row, col = selected_piece
             pygame.draw.rect(screen, HIGHLIGHT,
                              (col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE), 4)
-            print('pos moves', possible_moves)
             for move in possible_moves:
-                target_row, target_col = move[0][4], move[0][5]
+                target_row, target_col = move[4], move[5]
                 center_x = target_col * SQUARE_SIZE + SQUARE_SIZE // 2
                 center_y = target_row * SQUARE_SIZE + SQUARE_SIZE // 2
                 pygame.draw.circle(screen, POSSIBLE_MOVE, (center_x, center_y), SQUARE_SIZE // 4)
@@ -576,22 +622,21 @@ def play_against_bot(agent_filename):
 
         # Проверяем, что это шашка игрока
         if piece != 0 and np.sign(piece) == player_color:
-            # Проверяем наличие обязательных взятий
+            # Проверяем наличие обязательных взятий у любой шашки
             all_captures = game.get_capture_moves()
 
             if all_captures:
-                # Есть обязательные взятия, проверяем эту шашку
+                # Есть обязательные взятия, проверяем для этой шашки
                 piece_captures = []
-                for capture_seq in all_captures:
-                    if capture_seq and capture_seq[0][0] == row and capture_seq[0][1] == col:
-                        piece_captures.append([capture_seq[0]])
+                for sequence in all_captures:
+                    if sequence and sequence[0][0] == row and sequence[0][1] == col:
+                        # Добавляем только первый ход из последовательности
+                        piece_captures.append(sequence[0])
 
                 if piece_captures:
-                    # Эта шашка может совершить взятие
+                    # Эта шашка может совершить взятие, выбираем её
                     selected_piece = (row, col)
-                    print('here before - ', possible_moves)
                     possible_moves = piece_captures
-                    print('here after - ', possible_moves)
                 else:
                     # Эта шашка не может совершать взятие, но другие могут
                     print("У этой шашки нет обязательных взятий!")
@@ -624,8 +669,8 @@ def play_against_bot(agent_filename):
             # Проверяем, выбрал ли игрок клетку для хода
             target_move = None
             for move in possible_moves:
-                if move[0][4] == row and move[0][5] == col:
-                    target_move = move[0]
+                if move[4] == row and move[5] == col:
+                    target_move = move
                     break
 
             # Если выбран допустимый ход
@@ -640,12 +685,12 @@ def play_against_bot(agent_filename):
                 if is_capture:
                     next_captures = game.get_first_capture_moves((row, col))
                     if next_captures:
-                        # Если можно продолжить взятие, обновляем выбор
+                        # Если можно продолжить взятие, обновляем выбор и возможные ходы
                         selected_piece = (row, col)
                         possible_moves = next_captures
                         return
 
-                # Переходим к следующему игроку
+                # Если нет продолжения взятия или это был обычный ход, переходим к следующему игроку
                 game.current_player = -game.current_player
                 game.whites_turn = 1 if game.current_player == 1 else 0
                 selected_piece = None
@@ -674,28 +719,31 @@ def play_against_bot(agent_filename):
 
         bot_thinking = True
 
-        # Бот делает ход
-        bot_move = bot.select_move(game, 0)[0]
-        if bot_move:
-            print('bot move - ', bot_move)
-            is_capture = bot_move[2] is not None
-            game.move_piece(bot_move, capture_move=is_capture)
+        # Получаем ход от бота
+        move = bot.select_move(game, 0)
 
-            # Проверяем множественное взятие
-            continue_capture = True
-            while continue_capture and is_capture:
-                next_captures = game.get_first_capture_moves((bot_move[4], bot_move[5]))
+        if move:
+            # Выполняем ход
+            is_capture = move[2] is not None
+            game.move_piece(move, capture_move=is_capture)
+
+            # Проверяем, есть ли дальнейшие взятия (множественное взятие)
+            next_pos = (move[4], move[5])
+            while is_capture:
+                next_captures = game.get_first_capture_moves(next_pos)
                 if next_captures:
-                    bot_move = bot.select_move(game, 0)
-                    if bot_move:
-                        is_capture = bot_move[2] is not None
-                        game.move_piece(bot_move, capture_move=is_capture)
+                    # Выбираем следующий ход бота
+                    next_move = bot.select_move(game, 0)
+                    if next_move:
+                        is_capture = next_move[2] is not None
+                        game.move_piece(next_move, capture_move=is_capture)
+                        next_pos = (next_move[4], next_move[5])
                     else:
-                        continue_capture = False
+                        break
                 else:
-                    continue_capture = False
+                    break
 
-            # Переходим к следующему игроку
+            # Переключаем игрока
             game.current_player = -game.current_player
             game.whites_turn = 1 if game.current_player == 1 else 0
             game.check_winner()
