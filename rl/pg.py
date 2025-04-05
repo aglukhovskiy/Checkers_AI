@@ -76,7 +76,7 @@ class PolicyAgent():
             board_tensor = self._encoder.encode(simulated_board.board)
             board_tensors.append(board_tensor)
             # Преобразуем из (6, 8, 8) в (8, 8, 6)
-            x = np.transpose(board_tensor, (1, 2, 0)).reshape(1, 8, 8, 6)
+            x = np.transpose(board_tensor, (1, 2, 0)).reshape(1, 8, 8, 10)
             x_list.append(x)
         # print('ending cicle')
         if np.random.random() < self._temperature:
@@ -123,9 +123,11 @@ class PolicyAgent():
         h5file.create_group('model')
         kerasutil.save_model_to_hdf5_group(self._model, h5file['model'])
 
-    def train(self, experience, lr=0.0000001, clipnorm=1.0, batch_size=512):
+    def train(self, experience, lr=0.0000001, clipnorm=1.0, batch_size=512, epochs=1):
         opt = SGD(learning_rate=lr, clipnorm=clipnorm)
+
         self._model.compile(loss='binary_crossentropy', optimizer=opt)
+        # self._model.compile(loss='mean_absolute_error', optimizer=opt)
 
         n = experience.action_results.shape[0]
         # Translate the actions/rewards.
@@ -138,8 +140,7 @@ class PolicyAgent():
         x = experience.action_results
 
         self._model.fit(
-            x=x, batch_size=batch_size, y=y,
-            epochs=1)
+            x=x, batch_size=batch_size, y=y, epochs=epochs)
 
 def simulate_game(black_player, white_player, board_size):
     moves = []

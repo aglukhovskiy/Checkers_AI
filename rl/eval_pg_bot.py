@@ -7,13 +7,14 @@ import Board
 from Checkers import Checkers
 from scipy.stats import binomtest
 
-encoder = encoders.get_encoder_by_name('oneplane_singlesided')
+# encoder = encoders.get_encoder_by_name('oneplane_singlesided')
+encoder = encoders.get_encoder_by_name('tenplane')
 
-exp = load_experience(h5py.File('test_1000_games.hdf5'))
+# exp = load_experience(h5py.File('test_6_plane_1000_games.hdf5'))
 
-agent1 = load_policy_agent(h5py.File('model_test.hdf5'))
-agent2 = load_policy_agent(h5py.File('model_test.hdf5'))
-agent2.train(load_experience(h5py.File('test_1000_games.hdf5')), lr=0.01)
+agent1 = load_policy_agent(h5py.File('models_n_exp/model_test_10_plane.hdf5'))
+# agent1.train(load_experience(h5py.File('models_n_exp/test_10_plane_500_games.hdf5')), lr=0.02)
+agent2 = load_policy_agent(h5py.File('models_n_exp/model_test_10_plane_0.01_lr_512_bs_4_e.hdf5'))
 
 # with h5py.File('model_test_trained.hdf5', 'w') as model_outf:
 #     new_agent1.serialize(model_outf)
@@ -56,7 +57,7 @@ for i in range(num_games):
     #     white_player, black_player = agent1, agent2
     # else:
     #     black_player, white_player = agent1, agent2
-    white_player, black_player  = agent2, agent1
+    white_player, black_player  = agent1, agent2
     game_record = simulate_game(white_player, black_player, i)
     if game_record == color1:
         wins += 1
@@ -64,9 +65,11 @@ for i in range(num_games):
         losses += 1
     # color1 = 1-color1
     print('winner - ', game_record)
+    print('Agent 1 record: %d/%d' % (wins, wins + losses))
 
 print('Agent 1 record: %d/%d' % (wins, wins + losses))
 
-# 4/15, 4/15, 12/35, 8/15, 9/15, 10/25 = 47/120
+# 12/25
+# 17/50
 
-# print(binomtest(45, 65, 0.5))
+# print(binomtest(34, 100, 0.5))

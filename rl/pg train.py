@@ -21,7 +21,7 @@ from rl.experience import ExperienceCollector, combine_experience, load_experien
 
 # random.seed(42)
 
-input_shape = (8,8,6)
+input_shape = (8,8,10)
 
 layers = [
         ZeroPadding2D((3, 3), input_shape=input_shape),
@@ -41,7 +41,7 @@ def create_mlp():
     model.add(Dense(1, activation="linear"))
     return model
 
-encoder = encoders.get_encoder_by_name('sixplane')
+encoder = encoders.get_encoder_by_name('tenplane')
 
 # model = Sequential()
 # # opt = Adam(lr=1e-3, decay=1e-3 / 200)
@@ -51,23 +51,23 @@ encoder = encoders.get_encoder_by_name('sixplane')
 # # model.add(Dense(encoder.num_points()))
 # # model.add(Activation('softmax'))
 
-model = create_mlp()
+# model = create_mlp()
 # model.compile(loss="mean_absolute_error", optimizer='SGD', metrics=[metrics.MeanAbsoluteError()])
-model.compile(loss="mse", optimizer='SGD', metrics=[metrics.BinaryCrossentropy()])
+# model.compile(loss="mse", optimizer='SGD', metrics=[metrics.BinaryCrossentropy()])
 
-new_agent1 = PolicyAgent(model = model, encoder = encoder)
-new_agent2 = PolicyAgent(model = model, encoder = encoder)
-collector1 = ExperienceCollector()
-collector2 = ExperienceCollector()
-new_agent1.set_collector(collector1)
-new_agent2.set_collector(collector2)
-
-# agent1 = load_policy_agent(h5py.File('model_test.hdf5'))
-# agent2 = load_policy_agent(h5py.File('model_test.hdf5'))
+# new_agent1 = PolicyAgent(model = model, encoder = encoder)
+# new_agent2 = PolicyAgent(model = model, encoder = encoder)
 # collector1 = ExperienceCollector()
 # collector2 = ExperienceCollector()
-# agent1.set_collector(collector1)
-# agent2.set_collector(collector2)
+# new_agent1.set_collector(collector1)
+# new_agent2.set_collector(collector2)
+
+agent1 = load_policy_agent(h5py.File('models_n_exp/model_test_10_plane.hdf5'))
+agent2 = load_policy_agent(h5py.File('models_n_exp/model_test_10_plane.hdf5'))
+collector1 = ExperienceCollector()
+collector2 = ExperienceCollector()
+agent1.set_collector(collector1)
+agent2.set_collector(collector2)
 
 # print(new_agent1)
 
@@ -95,7 +95,7 @@ def simulate_game(white_player, black_player, game_num_for_record):
         if game.board.game_is_on==0:
             break
 
-    encoder.show_board(game.board)
+    # encoder.show_board(game.board)
     game_result, game_margin = game.board.compute_results()
 
     return GameRecord(
@@ -119,8 +119,8 @@ def simulate_game(white_player, black_player, game_num_for_record):
 # with h5py.File('test.hdf5', 'w') as experience_outf:
 #     experience.serialize(experience_outf)
 
-with h5py.File('model_test_6_plane.hdf5', 'w') as model_outf:
-    new_agent1.serialize(model_outf)
+# with h5py.File('models_n_exp/model_test_10_plane.hdf5', 'w') as model_outf:
+#     new_agent1.serialize(model_outf)
 
 # agent1 = load_policy_agent(h5py.File('model_test.hdf5'))
 # agent2 = load_policy_agent(h5py.File('model_test.hdf5'))
@@ -148,7 +148,8 @@ def do_self_play(agent_filename,
 
     color1 = 1
     for i in range(num_games):
-        print('Simulating game %d/%d...' % (i + 1, num_games))
+        if i%10==0:
+            print('Simulating game %d/%d...' % (i + 1, num_games))
         collector1.begin_episode()
         agent1.set_collector(collector1)
         collector2.begin_episode()
@@ -161,23 +162,23 @@ def do_self_play(agent_filename,
         game_record = simulate_game(white_player, black_player, game_num_for_record=i)
         # print('game was simulated')
         if game_record.winner == 1:
-            print('Agent 1 wins. (whites) ')
+            # print('Agent 1 wins. (whites) ')
             # collector1.complete_episode(reward=1)
             # collector2.complete_episode(reward=0)
             collector1.complete_episode(reward=1)
             collector2.complete_episode(reward=1)
         elif game_record.winner == 0:
-            print('Agent 2 wins. (blacks) ')
+            # print('Agent 2 wins. (blacks) ')
             # collector2.complete_episode(reward=1)
             # collector1.complete_episode(reward=0)
             collector2.complete_episode(reward=0)
             collector1.complete_episode(reward=0)
         elif game_record.winner == 0.5:
-            print('Draw')
+            # print('Draw')
             collector2.complete_episode(reward=0.5)
             collector1.complete_episode(reward=0.5)
         color1 = 1-color1
-        if i%100==0:
+        if i%100==0 and i>0:
             experience = combine_experience([collector1, collector2])
             print('Saving experience buffer to %s\n' % experience_filename)
             with h5py.File(experience_filename+'_{}_games.hdf5'.format(num_games), 'w') as experience_outf:
@@ -189,45 +190,36 @@ def do_self_play(agent_filename,
     with h5py.File(experience_filename+'_{}_games.hdf5'.format(num_games), 'w') as experience_outf:
         experience.serialize(experience_outf)
 
-do_self_play(agent_filename='model_test_6_plane.hdf5', num_games=300, temperature=0,
-                 experience_filename='test_6_plane',
-                 gpu_frac=0)
+
+# do_self_play(agent_filename='models_n_exp/model_test_10_plane.hdf5', num_games=500, temperature=0,
+#                  experience_filename='models_n_exp/test_10_plane',
+#                  gpu_frac=0)
+
+agent1.train(load_experience(h5py.File('models_n_exp/test_10_plane_500_games.hdf5')), lr=0.01)
+with h5py.File('models_n_exp/model_test_10_plane_trained.hdf5', 'w') as model_outf:
+    agent1.serialize(model_outf)
+
+for j in range(10):
+    print('starting {} iteration'.format(j+1))
+    do_self_play(agent_filename='models_n_exp/model_test_10_plane_trained.hdf5', num_games=100, temperature=0,
+                     experience_filename='models_n_exp/10_plane_{}_iter'.format(j),
+                     gpu_frac=0)
+    agent1.train(load_experience(h5py.File('models_n_exp/10_plane_{}_iter_100_games.hdf5'.format(j))), lr=0.005)
+    with h5py.File('models_n_exp/model_test_10_plane_trained.hdf5', 'w') as model_outf:
+        agent1.serialize(model_outf)
+
+exp_list = []
+
+for k in range(10):
+    exp_list.append(load_experience(h5py.File('models_n_exp/10_plane_{}_iter_100_games.hdf5'.format(k))))
+
+total_exp = combine_experience(exp_list)
+
+with h5py.File('models_n_exp/10_plane_iter_1000_games.hdf5', 'w') as experience_outf:
+    total_exp.serialize(experience_outf)
+
+# for z in range(10):
+#     os.remove('models_n_exp/10_plane_{}_iter_100_games.hdf5'.format(k))
 
 
-
-# new_agent1.train(load_experience(h5py.File('test.hdf5')))
-# agent1.train(load_experience(h5py.File('test.hdf5')))
-
-# with h5py.File('model_test_trained.hdf5', 'w') as model_outf:
-#     new_agent1.serialize(model_outf)
-
-
-# agent1 = load_policy_agent(h5py.File('model_test.hdf5'))
-# agent2 = load_policy_agent(h5py.File('model_test_trained.hdf5'))
-# agent3 = load_policy_agent(h5py.File('model_test.hdf5'))
-
-# agent3.train(load_experience(h5py.File('test.hdf5')))
-# agent1.train(load_experience(h5py.File('test.hdf5')))
-
-# wins = 0
-# losses = 0
-# color1 = 1
-# num_games = 25
-#
-# for i in range(num_games):
-#     print('Simulating game %d/%d...' % (i + 1, num_games))
-#     # if color1 == 1:
-#     #     white_player, black_player = agent1, agent2
-#     # else:
-#     #     black_player, white_player = agent1, agent2
-#     black_player, white_player = agent1, agent3
-#     game_record = simulate_game(white_player, black_player)
-#     if game_record.winner == color1:
-#         wins += 1
-#     else:
-#         losses += 1
-#     color1 = 1-color1
-#     print('winner - ', game_record.winner)
-#
-# print('Agent 1 record: %d/%d' % (wins, wins + losses))
 
