@@ -148,8 +148,8 @@ def do_self_play(agent_filename,
 
     color1 = 1
     for i in range(num_games):
-        if i%10==0:
-            print('Simulating game %d/%d...' % (i + 1, num_games))
+        # if i%10==0:
+        print('Simulating game %d/%d...' % (i + 1, num_games))
         collector1.begin_episode()
         agent1.set_collector(collector1)
         collector2.begin_episode()
@@ -191,32 +191,32 @@ def do_self_play(agent_filename,
         experience.serialize(experience_outf)
 
 
-# do_self_play(agent_filename='models_n_exp/model_test_10_plane.hdf5', num_games=500, temperature=0,
-#                  experience_filename='models_n_exp/test_10_plane',
-#                  gpu_frac=0)
+do_self_play(agent_filename='models_n_exp/model_test_10_plane.hdf5', num_games=500, temperature=0,
+                 experience_filename='models_n_exp/test_10_plane',
+                 gpu_frac=0)
 
-agent1.train(load_experience(h5py.File('models_n_exp/test_10_plane_500_games.hdf5')), lr=0.01)
-with h5py.File('models_n_exp/model_test_10_plane_trained.hdf5', 'w') as model_outf:
-    agent1.serialize(model_outf)
-
-for j in range(10):
-    print('starting {} iteration'.format(j+1))
-    do_self_play(agent_filename='models_n_exp/model_test_10_plane_trained.hdf5', num_games=100, temperature=0,
-                     experience_filename='models_n_exp/10_plane_{}_iter'.format(j),
-                     gpu_frac=0)
-    agent1.train(load_experience(h5py.File('models_n_exp/10_plane_{}_iter_100_games.hdf5'.format(j))), lr=0.005)
-    with h5py.File('models_n_exp/model_test_10_plane_trained.hdf5', 'w') as model_outf:
-        agent1.serialize(model_outf)
-
-exp_list = []
-
-for k in range(10):
-    exp_list.append(load_experience(h5py.File('models_n_exp/10_plane_{}_iter_100_games.hdf5'.format(k))))
-
-total_exp = combine_experience(exp_list)
-
-with h5py.File('models_n_exp/10_plane_iter_1000_games.hdf5', 'w') as experience_outf:
-    total_exp.serialize(experience_outf)
+# agent1.train(load_experience(h5py.File('models_n_exp/test_10_plane_500_games.hdf5')), lr=0.01)
+# with h5py.File('models_n_exp/model_test_10_plane_trained.hdf5', 'w') as model_outf:
+#     agent1.serialize(model_outf)
+#
+# for j in range(10):
+#     print('starting {} iteration'.format(j+1))
+#     do_self_play(agent_filename='models_n_exp/model_test_10_plane_trained.hdf5', num_games=100, temperature=0,
+#                      experience_filename='models_n_exp/10_plane_{}_iter'.format(j),
+#                      gpu_frac=0)
+#     agent1.train(load_experience(h5py.File('models_n_exp/10_plane_{}_iter_100_games.hdf5'.format(j))), lr=0.005)
+#     with h5py.File('models_n_exp/model_test_10_plane_trained.hdf5', 'w') as model_outf:
+#         agent1.serialize(model_outf)
+#
+# exp_list = []
+#
+# for k in range(10):
+#     exp_list.append(load_experience(h5py.File('models_n_exp/10_plane_{}_iter_100_games.hdf5'.format(k))))
+#
+# total_exp = combine_experience(exp_list)
+#
+# with h5py.File('models_n_exp/10_plane_iter_1000_games.hdf5', 'w') as experience_outf:
+#     total_exp.serialize(experience_outf)
 
 # for z in range(10):
 #     os.remove('models_n_exp/10_plane_{}_iter_100_games.hdf5'.format(k))
