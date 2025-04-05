@@ -65,11 +65,14 @@ class CheckersGame:
         return False
 
 
-    def get_regular_moves(self):
+    def get_regular_moves(self, piece=None):
         """Получает обычные ходы для шашки"""
         moves = []
 
         for i in self.pieces:
+            if piece:
+                if i!=piece:
+                    continue
             row, col = i[0], i[1]
             piece = self.board[row][col]
             if np.sign(piece)==self.current_player:
@@ -92,74 +95,178 @@ class CheckersGame:
                             moves.append([(row,col, None, None, r, c)])
         return moves
 
-    def get_capture_moves(self, multicapture_piece=None, capture_moves=[]):
-        capture_moves = capture_moves
-        original_board = copy(self.board)
-        original_pieces = copy(self.pieces)
+    # def get_capture_moves(self, multicapture_piece=None, capture_moves=[]):
+    def get_capture_moves(self, multicapture_piece=None, current_capture_series=None):
+        """Получает все возможные пути взятия, включая множественные взятия"""
 
-        for i in self.get_first_capture_moves(multicapture_piece = multicapture_piece):
+        # Результат - список цепочек взятий
+        all_capture_sequences = []
+
+        # Если текущая последовательность не передана, создаем пустую
+        if current_capture_series is None:
             current_capture_series = []
-            self.move_piece(i, capture_move=True)
-            current_capture_series.append(i)
 
-            multicapture_moves = self.get_first_capture_moves(multicapture_piece=(i[4], i[5]))
-            while multicapture_moves:
-                self.get_capture_moves(multicapture_piece=(i[4], i[5]), capture_moves=current_capture_series)
+        # Получаем все первичные взятия из текущей позиции
+        first_captures = self.get_first_capture_moves(multicapture_piece)
 
-            capture_moves.append(current_capture_series)
-            self.board = original_board
-            self.pieces = original_pieces
+        # Если нет возможных взятий, возвращаем текущую последовательность, если она не пуста
+        if not first_captures:
+            if current_capture_series:
+                return [current_capture_series]
+            return []
 
-        return capture_moves
+        # Для каждого возможного первого взятия
+        for capture in first_captures:
+            # Сохраняем текущее состояние доски и фигур
+            original_board = self.board.copy()
+            original_pieces = self.pieces.copy()
+
+            # Выполняем взятие
+            self.move_piece(capture, capture_move=True)
+
+            # Создаем новую последовательность с текущим взятием
+            new_sequence = current_capture_series + [capture]
+
+            # Проверяем, может ли шашка после взятия сделать еще одно взятие
+            next_pos = (capture[4], capture[5])
+            multicapture_sequences = self.get_capture_moves(next_pos, new_sequence)
+
+            # Если после этого взятия больше нет взятий, добавляем последовательность
+            if not multicapture_sequences:
+                all_capture_sequences.append(new_sequence)
+            else:
+                # Если есть дальнейшие взятия, добавляем все возможные последовательности
+                all_capture_sequences.extend(multicapture_sequences)
+
+            # Восстанавливаем состояние доски и фигур после проверки
+            self.board = original_board.copy()
+            self.pieces = original_pieces.copy()
+
+        return all_capture_sequences
+
+        # capture_moves = capture_moves
+        #
+        # original_board = copy(self.board)
+        # original_pieces = copy(self.pieces)
+        #
+        # for i in self.get_first_capture_moves(multicapture_piece = multicapture_piece):
+        #     current_capture_series = []
+        #     self.move_piece(i, capture_move=True)
+        #     current_capture_series.append(i)
+        #
+        #     multicapture_moves = self.get_first_capture_moves(multicapture_piece=(i[4], i[5]))
+        #     while multicapture_moves:
+        #         self.get_capture_moves(multicapture_piece=(i[4], i[5]), capture_moves=current_capture_series)
+        #
+        #     capture_moves.append(current_capture_series)
+        #     self.board = original_board
+        #     self.pieces = original_pieces
+        #
+        # return capture_moves
 
     def get_first_capture_moves(self, multicapture_piece=None):
-        """Получает ходы со взятием для шашки"""
+        """Получает ходы со взятием для шашки или всех шашек текущего игрока"""
         first_capture_moves = []
 
-        for i in self.pieces:
-            if multicapture_piece:
-                if i!=multicapture_piece:
-                    continue
-            row, col = i[0], i[1]
-            piece = self.board[row][col]
+        # Если указана конкретная шашка для проверки мультивзятия
+        if multicapture_piece:
+            pieces_to_check = [multicapture_piece]
+        else:
+            # Иначе проверяем все шашки текущего игрока
+            pieces_to_check = [piece for piece in self.pieces
+                               if np.sign(self.board[piece[0]][piece[1]]) == self.current_player]
 
-            if np.sign(piece)==self.current_player:
+        for piece in pieces_to_check:
+            row, col = piece[0], piece[1]
+            piece_value = self.board[row][col]
 
-                # Проверяем, является ли дамкой
-                if np.abs(piece)>1:
-                    # Дамка может бить по диагонали на любое расстояние
-                    directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
-                    for dr, dc in directions:
-                        r, c = row + dr, col + dc
-                        while 0 <= r < 8 and 0 <= c < 8:
-                            if self.board[r][c] == 0:
-                                r += dr
-                                c += dc
-                                continue
+            # Проверяем, является ли дамкой
+            if np.abs(piece_value) > 1:
+                # Дамка может бить по диагонали на любое расстояние
+                directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+                for dr, dc in directions:
+                    r, c = row + dr, col + dc
+                    enemy_found = False
+                    enemy_pos = None
 
-                            # Найдена потенциальная шашка для взятия
-                            if np.sign(self.board[r][c]) != np.sign(piece):
-                                # Проверяем, есть ли пустая клетка за ней
-                                capture_r, capture_c = r + dr, c + dc
-                                while 0 <= capture_r < 8 and 0 <= capture_c < 8:
-                                    if self.board[capture_r][capture_c] == 0:
-                                        first_capture_moves.append((row, col, r, c, capture_r, capture_c))  # шашка,взятие, ход
-                                        capture_r += dr
-                                        capture_c += dc
-                                    else:
-                                        break
+                    while 0 <= r < 8 and 0 <= c < 8:
+                        if self.board[r][c] == 0:
+                            if enemy_found:
+                                first_capture_moves.append((row, col, enemy_pos[0], enemy_pos[1], r, c))
+                            r += dr
+                            c += dc
+                            continue
+
+                        # Если нашли шашку противника
+                        if not enemy_found and np.sign(self.board[r][c]) == -np.sign(piece_value):
+                            enemy_found = True
+                            enemy_pos = (r, c)
+                            r += dr
+                            c += dc
+                        else:
+                            # Если нашли вторую шашку или свою шашку
                             break
-                else:
-                    # Обычная шашка может бить в любом направлении
-                    directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
-                    for dr, dc in directions:
-                        r, c = row + dr, col + dc
-                        if 0 <= r < 8 and 0 <= c < 8 and self.board[r][c]!=0 and np.sign(self.board[r][c]) != np.sign(piece):
-                            capture_r, capture_c = r + dr, c + dc
-                            if 0 <= capture_r < 8 and 0 <= capture_c < 8 and self.board[capture_r][capture_c] == 0:
-                                first_capture_moves.append((row, col, r, c, capture_r, capture_c))  # шашка,взятие, ход
+            else:
+                # Обычная шашка может бить в любом направлении
+                directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+                for dr, dc in directions:
+                    r, c = row + dr, col + dc
+                    if 0 <= r < 8 and 0 <= c < 8 and self.board[r][c] != 0 and np.sign(self.board[r][c]) == -np.sign(
+                            piece_value):
+                        capture_r, capture_c = r + dr, c + dc
+                        if 0 <= capture_r < 8 and 0 <= capture_c < 8 and self.board[capture_r][capture_c] == 0:
+                            first_capture_moves.append((row, col, r, c, capture_r, capture_c))
 
         return first_capture_moves
+
+    # def get_first_capture_moves(self, multicapture_piece=None):
+    #     """Получает ходы со взятием для шашки"""
+    #     first_capture_moves = []
+    #
+    #     for i in self.pieces:
+    #         if multicapture_piece:
+    #             if i!=multicapture_piece:
+    #                 continue
+    #         row, col = i[0], i[1]
+    #         piece = self.board[row][col]
+    #
+    #         if np.sign(piece)==self.current_player:
+    #
+    #             # Проверяем, является ли дамкой
+    #             if np.abs(piece)>1:
+    #                 # Дамка может бить по диагонали на любое расстояние
+    #                 directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+    #                 for dr, dc in directions:
+    #                     r, c = row + dr, col + dc
+    #                     while 0 <= r < 8 and 0 <= c < 8:
+    #                         if self.board[r][c] == 0:
+    #                             r += dr
+    #                             c += dc
+    #                             continue
+    #
+    #                         # Найдена потенциальная шашка для взятия
+    #                         if np.sign(self.board[r][c]) != np.sign(piece):
+    #                             # Проверяем, есть ли пустая клетка за ней
+    #                             capture_r, capture_c = r + dr, c + dc
+    #                             while 0 <= capture_r < 8 and 0 <= capture_c < 8:
+    #                                 if self.board[capture_r][capture_c] == 0:
+    #                                     first_capture_moves.append((row, col, r, c, capture_r, capture_c))  # шашка,взятие, ход
+    #                                     capture_r += dr
+    #                                     capture_c += dc
+    #                                 else:
+    #                                     break
+    #                         break
+    #             else:
+    #                 # Обычная шашка может бить в любом направлении
+    #                 directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+    #                 for dr, dc in directions:
+    #                     r, c = row + dr, col + dc
+    #                     if 0 <= r < 8 and 0 <= c < 8 and self.board[r][c]!=0 and np.sign(self.board[r][c]) != np.sign(piece):
+    #                         capture_r, capture_c = r + dr, c + dc
+    #                         if 0 <= capture_r < 8 and 0 <= capture_c < 8 and self.board[capture_r][capture_c] == 0:
+    #                             first_capture_moves.append((row, col, r, c, capture_r, capture_c))  # шашка,взятие, ход
+    #
+    #     return first_capture_moves
 
     def check_for_kings(self):
         """Проверяет, достигли ли какие-либо шашки противоположного края доски, чтобы стать дамками"""
@@ -258,10 +365,11 @@ class CheckersGame:
         return None
 
     def next_turn(self, move_list):
-        for move in move_list:
-            self.move_piece(move)
-        self.current_player = 0-self.current_player
-        self.check_winner()
+        if self.game_is_on==1:
+            for move in move_list:
+                self.move_piece(move)
+            self.current_player = 0-self.current_player
+            self.check_winner()
 
     def reset_game(self):
         """Сбрасывает игру в начальное состояние"""
@@ -272,10 +380,10 @@ class CheckersGame:
         self.capture_moves = []
         self.kings = set()
 
-game = CheckersGame()
+# game = CheckersGame()
 # print(game.get_regular_moves())
 
-print(game.pieces)
+# print(game.pieces)
 # print((5, 4) in game.pieces)
 # game.pieces.remove((5,4))
 # print((5, 4) in game.pieces)
@@ -289,32 +397,33 @@ print(game.pieces)
 # print(game.board)
 # print(game.get_possible_moves())
 
-# for i in range(10):
+# for i in range(25):
 #     print('pos moves - ', game.get_possible_moves())
 #     print(game.board)
 #     move = game.get_possible_moves()[0]
 #     print('move - ', move)
 #     game.next_turn(move)
 
-print('pos moves - ', game.get_possible_moves())
-print(game.board)
-move = game.get_possible_moves()[0]
-print('move - ', move)
-game.next_turn(move)
 
-print('pos moves - ', game.get_possible_moves())
-print(game.board)
-move = game.get_possible_moves()[0]
-print('move - ', move)
-game.next_turn(move)
-
-print('pos moves - ', game.get_possible_moves())
-print(game.board)
-move = game.get_possible_moves()[0]
-print('move - ', move)
-game.next_turn(move)
-
-print('pos moves - ', game.get_possible_moves())
+# print('pos moves - ', game.get_possible_moves())
+# print(game.board)
+# move = game.get_possible_moves()[0]
+# print('move - ', move)
+# game.next_turn(move)
+#
+# print('pos moves - ', game.get_possible_moves())
+# print(game.board)
+# move = game.get_possible_moves()[0]
+# print('move - ', move)
+# game.next_turn(move)
+#
+# print('pos moves - ', game.get_possible_moves())
+# print(game.board)
+# move = game.get_possible_moves()[0]
+# print('move - ', move)
+# game.next_turn(move)
+#
+# print('pos moves - ', game.get_possible_moves())
 # print(game.board)
 # moves = game.get_possible_moves()[0]
 # print('move - ', moves)

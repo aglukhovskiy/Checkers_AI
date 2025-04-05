@@ -1,4 +1,6 @@
-import numpy as np
+import pygame
+import sys
+
 
 class CheckersGame:
     def __init__(self):
@@ -11,20 +13,19 @@ class CheckersGame:
 
     def _create_board(self):
         # создаем пустую доску 8x8
-        board =  np.zeros((8,8))
-        # board = [[None for _ in range(8)] for _ in range(8)]
+        board = [[None for _ in range(8)] for _ in range(8)]
 
         # Расставляем начальные позиции белых шашек
         for row in range(5, 8):
             for col in range(8):
                 if (row + col) % 2 == 1:  # только на темных клетках
-                    board[row][col] = 1
+                    board[row][col] = 'white'
 
         # Расставляем начальные позиции черных шашек
         for row in range(0, 3):
             for col in range(8):
                 if (row + col) % 2 == 1:  # только на темных клетках
-                    board[row][col] = -1
+                    board[row][col] = 'black'
 
         return board
 
@@ -239,9 +240,6 @@ class CheckersGame:
         self.capture_moves = []
         self.kings = set()
 
-import pygame
-import sys
-
 # Инициализация Pygame
 pygame.init()
 
@@ -262,6 +260,7 @@ clock = pygame.time.Clock()
 
 # Создание игры
 game = CheckersGame()
+
 
 def draw_board():
     """Отрисовка доски"""
@@ -293,6 +292,7 @@ def draw_board():
                                         row * SQUARE_SIZE + SQUARE_SIZE // 2),
                                        SQUARE_SIZE // 6)
 
+
 def draw_pieces():
     """Отрисовка шашек"""
     for row in range(8):
@@ -308,6 +308,7 @@ def draw_pieces():
                 if game.is_king(row, col):
                     crown_color = BLACK if piece == 'white' else WHITE
                     pygame.draw.circle(screen, crown_color, center, SQUARE_SIZE // 4 - 5)
+
 
 def main():
     """Основной игровой цикл"""
@@ -369,6 +370,7 @@ def main():
 
     pygame.quit()
     sys.exit()
+
 
 if __name__ == "__main__":
     main()
