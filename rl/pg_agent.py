@@ -27,8 +27,8 @@ class PolicyAgent:
         self._temperature = temperature
 
     def _prepare_input(self, board_tensor):
-        # Преобразуем из (10, 8, 8) в (8, 8, 10)
-        return np.transpose(board_tensor, (1, 2, 0)).reshape(1, 8, 8, 10)
+        # Данные уже в формате (10, 8, 8), просто добавляем размерность батча
+        return board_tensor.reshape(1, 10, 8, 8)
 
     def select_move(self, game, game_num_for_record):
         """Выбирает ход на основе текущего состояния игры"""
@@ -75,40 +75,10 @@ class PolicyAgent:
                 else:
                     break
 
-            # Переходим к следующему игроку
-            # simulated_game.current_player = -simulated_game.current_player
-
-            # # Если игра не закончилась, делаем один случайный ход для оппонента
-            # if simulated_game.game_is_on == 1:
-            #     opp_moves = simulated_game.available_moves()[0]
-            #     if opp_moves:
-            #         opp_move = random.choice(opp_moves)
-            #         if isinstance(opp_move, tuple) and len(opp_move) >= 6:
-            #             is_capture = opp_move[2] is not None
-            #             simulated_game.move_piece(opp_move, capture_move=is_capture)
-            #
-            #             # Проверяем множественное взятие для оппонента
-            #             if is_capture:
-            #                 next_pos = (opp_move[4], opp_move[5])
-            #                 while True:
-            #                     next_captures = simulated_game.get_first_capture_moves(next_pos)
-            #                     if not next_captures:
-            #                         break
-            #
-            #                     next_move = next_captures[0]
-            #                     is_capture = next_move[2] is not None
-            #                     simulated_game.move_piece(next_move, capture_move=is_capture)
-            #                     next_pos = (next_move[4], next_move[5])
-            #
-            #             # Переключаем игрока обратно
-            #             simulated_game.current_player = -simulated_game.current_player
-
             simulated_boards.append(simulated_game)
             board_tensor = self._encoder.encode(simulated_game)
             board_tensors.append(board_tensor)
-
-            # Преобразуем из (10, 8, 8) в (8, 8, 10)
-            x = np.transpose(board_tensor, (1, 2, 0)).reshape(1, 8, 8, 10)
+            x = self._prepare_input(board_tensor)
             x_list.append(x)
 
         # Либо исследуем случайные ходы, либо следуем текущей политике
@@ -120,10 +90,6 @@ class PolicyAgent:
         # Предотвращаем вероятности 0 или 1
         eps = 1e-5
         move_probs = np.clip(move_probs, eps, 1 - eps)
-
-        # Инвертируем вероятности для черных (т.к. модель обучена на максимизацию выигрыша белых)
-        # if game.current_player == -1:
-        #     move_probs = [1 - x for x in move_probs]
 
         # Нормализуем, чтобы получить распределение вероятностей
         move_probs = move_probs / np.sum(move_probs)
@@ -160,9 +126,7 @@ class PolicyAgent:
     def train(self, experience, lr=0.01, clipnorm=1.0, batch_size=512, epochs=1):
         """Обучает модель на основе опыта"""
         opt = SGD(learning_rate=lr, clipnorm=clipnorm)
-        # self._model.compile(loss='binary_crossentropy', optimizer=opt)
-        # self._model.compile(loss='mean_absolute_error', optimizer=opt)
-        self._model.compile(loss='mean_squared_error', optimizer=opt)
+        self._model.compile(loss='mean_absolute_error', optimizer=opt)
 
         n = experience.action_results.shape[0]
         # Translate the actions/rewards.
@@ -171,8 +135,8 @@ class PolicyAgent:
             reward = experience.rewards[i]
             y[i] = reward
 
-        # Преобразуем данные из (None, 10, 8, 8) в (None, 8, 8, 10)
-        x = np.transpose(experience.action_results, (0, 2, 3, 1))
+        # Данные уже в формате (None, 10, 8, 8)
+        x = experience.action_results
 
         self._model.fit(
             x=x, batch_size=batch_size, y=y, epochs=epochs)
