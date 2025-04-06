@@ -12,7 +12,7 @@ class CheckersGame:
         self.capture_moves = []
         self.game_is_on = 1
         self.game_result = []
-        self.winner = 0
+        self.winner = None
 
     def _create_board(self):
         # создаем пустую доску 8x8
@@ -278,16 +278,33 @@ class CheckersGame:
                 self.winner = 1
             elif pieces[0] + pieces[2] < pieces[1] + pieces[3]:
                 self.winner = -1
+            else:
+                self.winner = 0
             return self.winner
 
         return None
 
-    def next_turn(self, move_list):
-        for move in move_list:
-            print('starting move - ', move)
-            self.move_piece(move, capture_move=(move[2] is not None))
-        self.current_player = -self.current_player
-        return self.check_winner()
+    def next_turn(self, move=None):
+        """Выполняет ход и переключает игрока"""
+        if move:
+            # Проверяем тип move
+            if isinstance(move, list) and all(isinstance(item, tuple) for item in move):
+                # Если это список кортежей (последовательность взятий)
+                for single_move in move:
+                    if isinstance(single_move, tuple) and len(single_move) >= 6:
+                        self.move_piece(single_move, capture_move=(single_move[2] is not None))
+                    else:
+                        print(f"Некорректный формат хода: {single_move}")
+            elif isinstance(move, tuple) and len(move) >= 6:
+                # Если это один кортеж (одиночный ход)
+                self.move_piece(move, capture_move=(move[2] is not None))
+            else:
+                print(f"Некорректный формат хода: {move}")
+                return
+
+            # Переключаем игрока
+            self.current_player = -self.current_player
+            self.check_winner()
 
     def reset_game(self):
         """Сбрасывает игру в начальное состояние"""
@@ -300,7 +317,7 @@ class CheckersGame:
         self.capture_moves = []
         self.game_is_on = 1
         self.game_result = []
-        self.winner = 0
+        self.winner = None
 
     def available_moves(self):
         """Возвращает доступные ходы для совместимости с TenPlaneEncoder"""
@@ -316,19 +333,20 @@ class CheckersGame:
         else:
             all_moves = self.get_regular_moves()
 
-        # Создаем структуру, совместимую с форматом TenPlaneEncoder
-        threatened_pieces = {}
-        taker_pieces = {}
+        # # Создаем структуру, совместимую с форматом TenPlaneEncoder
+        # threatened_pieces = {}
+        # taker_pieces = {}
+        #
+        # # Извлекаем информацию о шашках под боем и шашках, которые могут бить
+        # for move in all_moves:
+        #     if move[2] is not None:  # Это взятие
+        #         # Шашка под боем
+        #         threatened_pieces[f'{move[2]},{move[3]}'] = (move[2], move[3])
+        #         # Шашка, которая может бить
+        #         taker_pieces[f'{move[0]},{move[1]}'] = (move[0], move[1])
 
-        # Извлекаем информацию о шашках под боем и шашках, которые могут бить
-        for move in all_moves:
-            if move[2] is not None:  # Это взятие
-                # Шашка под боем
-                threatened_pieces[f'{move[2]},{move[3]}'] = (move[2], move[3])
-                # Шашка, которая может бить
-                taker_pieces[f'{move[0]},{move[1]}'] = (move[0], move[1])
-
-        return [all_moves, threatened_pieces, taker_pieces]
+        # return [all_moves, threatened_pieces, taker_pieces]
+        return [all_moves]
 
 
     def compute_results(self):
@@ -344,17 +362,17 @@ class CheckersGame:
         if self.winner == 1:
             return 1, margin
         elif self.winner == -1:
+            return -1, margin
+        elif self.winner == 0:
             return 0, margin
-        elif self.winner == 0.5:
-            return 0.5, margin
 
         # Если нет победителя, определяем по количеству оставшихся шашек
         if white_score > black_score:
             return 1, margin
         elif white_score < black_score:
-            return 0, margin
+            return -1, margin
         else:
-            return 0.5, margin  # Ничья
+            return 0, margin  # Ничья
 
 # game = CheckersGame()
 # print(game.get_regular_moves())

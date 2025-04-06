@@ -65,3 +65,30 @@ def load_model_from_hdf5_group(f, custom_objects=None):
 #     config = tf.ConfigProto()
 #     config.gpu_options.per_process_gpu_memory_fraction = frac
 #     set_session(tf.Session(config=config))
+
+
+def kerasutil_save_model_to_hdf5_group(model, h5group):
+    """Сохраняет модель в формате HDF5"""
+    model_json = model.to_json()
+    h5group.attrs['model_json'] = model_json
+    for layer_index, layer in enumerate(model.layers):
+        g = h5group.create_group(f'layer_{layer_index}')
+        weights = layer.get_weights()
+        for weight_index, weight in enumerate(weights):
+            g.create_dataset(f'weight_{weight_index}', data=weight)
+
+
+def kerasutil_load_model_from_hdf5_group(h5group, custom_objects=None):
+    """Загружает модель из формата HDF5"""
+    model_json = h5group.attrs['model_json']
+    model = keras.models.model_from_json(model_json, custom_objects=custom_objects)
+
+    for layer_index, layer in enumerate(model.layers):
+        g = h5group[f'layer_{layer_index}']
+        weights = []
+        for i in range(len(g.keys())):
+            weight = g[f'weight_{i}'][()]
+            weights.append(weight)
+        layer.set_weights(weights)
+
+    return model

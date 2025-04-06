@@ -15,6 +15,7 @@ from Checkers import Checkers
 import Board
 from collections import namedtuple
 import tensorflow as tf
+import timeit
 
 from rl import large
 from rl.experience import ExperienceCollector, combine_experience, load_experience
@@ -147,6 +148,7 @@ def do_self_play(agent_filename,
     collector2 = ExperienceCollector()
 
     color1 = 1
+    time_spent_list=[]
     for i in range(num_games):
         # if i%10==0:
         print('Simulating game %d/%d...' % (i + 1, num_games))
@@ -159,7 +161,12 @@ def do_self_play(agent_filename,
             white_player, black_player = agent1, agent2
         else:
             black_player, white_player = agent1, agent2
+        start = timeit.default_timer()
+        # Симулируем игру
         game_record = simulate_game(white_player, black_player, game_num_for_record=i)
+        time_spent_list.append(timeit.default_timer() - start)
+        print("time spent :", time_spent_list[-1])
+        print("avg time spent :", np.mean(time_spent_list))
         # print('game was simulated')
         if game_record.winner == 1:
             # print('Agent 1 wins. (whites) ')

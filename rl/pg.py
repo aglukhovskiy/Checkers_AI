@@ -50,35 +50,26 @@ class PolicyAgent():
 #
     def set_collector(self, collector):
         self._collector = collector
-#
     def select_move(self, game, game_num_for_record):
         moves = game.board.available_moves()[0]
         num_moves = len(moves)
         if num_moves==0:
-            # print('bug here')
             game.board.game_is_on=0
             return
         simulated_boards = []
         board_tensors = []
         x_list = []
-        # print('starting cicle - ', num_moves)
         for i in range(num_moves):
             simulated_board = deepcopy(game)
-            # print('starting inside loop - ', moves[i])
             simulated_board.next_turn(move=moves[i])
             while simulated_board.board.whites_turn == game.board.whites_turn and simulated_board.board.game_is_on==1:
-                # print('making loop move ', simulated_board.board.available_moves())
                 random_multipickup_move = random.choice(simulated_board.board.available_moves()[0])
-                # self._encoder.show_board(simulated_board.board)
                 simulated_board.next_turn(move=random_multipickup_move)
-            # print('continuing inside loop - ', moves[i])
             simulated_boards.append(simulated_board)
             board_tensor = self._encoder.encode(simulated_board.board)
             board_tensors.append(board_tensor)
-            # Преобразуем из (6, 8, 8) в (8, 8, 6)
-            x = np.transpose(board_tensor, (1, 2, 0)).reshape(1, 8, 8, 10)
+            x = self._prepare_input(board_tensor)
             x_list.append(x)
-        # print('ending cicle')
         if np.random.random() < self._temperature:
             # Explore random moves.
             move_probs = np.ones(num_moves) / num_moves
@@ -98,23 +89,17 @@ class PolicyAgent():
 
         # Turn the probabilities into a ranked list of moves.
         candidates = np.arange(num_moves)
-        # try:
         ranked_moves = np.random.choice(
             candidates, num_moves, replace=False, p=move_probs)
         move = moves[ranked_moves[0]]
-        # except:
-        #     ranked_moves = []
-        #     move = None
 
         if self._collector is not None:
             self._collector.record_decision(
                 state=self._encoder.encode(game.board),
-                # action=move,
                 action_result=board_tensors[ranked_moves[0]],
                 white_turns=game.board.whites_turn,
                 game_nums=game_num_for_record
             )
-        # print('ending to select')
         return move
 
     def serialize(self, h5file):
