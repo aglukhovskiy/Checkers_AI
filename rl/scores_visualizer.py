@@ -83,13 +83,13 @@ board_w_minus_10.board[7][4] = 0
 board_w_minus_10.board[5][6] = 0
 encoder.show_board(board_w_minus_10)
 
-predict_equal = agent1._model.predict(agent1._prepare_input(encoder.encode(equal_board)), verbose=False)
-predict_w_plus_2 = agent1._model.predict(agent1._prepare_input(encoder.encode(board_w_plus_2)), verbose=False)
-predict_w_plus_6 = agent1._model.predict(agent1._prepare_input(encoder.encode(board_w_plus_6)), verbose=False)
-predict_w_plus_10 = agent1._model.predict(agent1._prepare_input(encoder.encode(board_w_plus_10)), verbose=False)
-predict_w_minus_2 = agent1._model.predict(agent1._prepare_input(encoder.encode(board_w_minus_2)), verbose=False)
-predict_w_minus_6 = agent1._model.predict(agent1._prepare_input(encoder.encode(board_w_minus_6)), verbose=False)
-predict_w_minus_10 = agent1._model.predict(agent1._prepare_input(encoder.encode(board_w_minus_10)), verbose=False)
+# predict_equal = agent1._model.predict(agent1._prepare_input(encoder.encode(equal_board)), verbose=False)
+# predict_w_plus_2 = agent1._model.predict(agent1._prepare_input(encoder.encode(board_w_plus_2)), verbose=False)
+# predict_w_plus_6 = agent1._model.predict(agent1._prepare_input(encoder.encode(board_w_plus_6)), verbose=False)
+# predict_w_plus_10 = agent1._model.predict(agent1._prepare_input(encoder.encode(board_w_plus_10)), verbose=False)
+# predict_w_minus_2 = agent1._model.predict(agent1._prepare_input(encoder.encode(board_w_minus_2)), verbose=False)
+# predict_w_minus_6 = agent1._model.predict(agent1._prepare_input(encoder.encode(board_w_minus_6)), verbose=False)
+# predict_w_minus_10 = agent1._model.predict(agent1._prepare_input(encoder.encode(board_w_minus_10)), verbose=False)
 
 # trained_predict_equal = agent2._model.predict(np.array([encoder.encode(equal_board)])[0], verbose=False)
 # trained_predict_w_plus_2 = agent2._model.predict(np.array([encoder.encode(board_w_plus_2)])[0], verbose=False)
@@ -108,21 +108,44 @@ predict_w_minus_10 = agent1._model.predict(agent1._prepare_input(encoder.encode(
 # predict_w_minus_6 = agent1._model.predict(np.transpose(encoder.encode(board_w_minus_6), (1, 2, 0)).reshape(1, 8, 8, 10), verbose=False)
 # predict_w_minus_10 = agent1._model.predict(np.transpose(encoder.encode(board_w_minus_10), (1, 2, 0)).reshape(1, 8, 8, 10), verbose=False)
 
-predict_input_equal = np.transpose(encoder.encode(equal_board), (1, 2, 0)).reshape(1, 8, 8, 10)
-predict_input_w_plus_2 = np.transpose(encoder.encode(board_w_plus_2), (1, 2, 0)).reshape(1, 8, 8, 10)
+# predict_input_equal = np.transpose(encoder.encode(equal_board), (1, 2, 0)).reshape(1, 8, 8, 10)
+# predict_input_w_plus_2 = np.transpose(encoder.encode(board_w_plus_2), (1, 2, 0)).reshape(1, 8, 8, 10)
+#
+# print(predict_input_equal)
+#
+# print('---------------')
+# print(predict_input_w_plus_2)
+# print('---------------')
+# trained_predict_equal = agent2._model.predict(predict_input_equal, verbose=False)
+# trained_predict_w_plus_2 = agent2._model.predict(predict_input_w_plus_2, verbose=False)
 
-print(predict_input_equal)
+# trained_predict_equal = agent2._model.predict(np.transpose(encoder.encode(equal_board), (1, 2, 0)).reshape(1, 8, 8, 10), verbose=False)
+# trained_predict_w_plus_2 = agent2._model.predict(np.transpose(encoder.encode(board_w_plus_2), (1, 2, 0)).reshape(1, 8, 8, 10), verbose=False)
+# trained_predict_w_plus_6 = agent2._model.predict(np.transpose(encoder.encode(board_w_plus_6), (1, 2, 0)).reshape(1, 8, 8, 10), verbose=False)
+# trained_predict_w_plus_10 = agent2._model.predict(np.transpose(encoder.encode(board_w_plus_10), (1, 2, 0)).reshape(1, 8, 8, 10), verbose=False)
+# trained_predict_w_minus_2 = agent2._model.predict(np.transpose(encoder.encode(board_w_minus_2), (1, 2, 0)).reshape(1, 8, 8, 10), verbose=False)
+# trained_predict_w_minus_6 = agent2._model.predict(np.transpose(encoder.encode(board_w_minus_6), (1, 2, 0)).reshape(1, 8, 8, 10), verbose=False)
+# trained_predict_w_minus_10 = agent2._model.predict(np.transpose(encoder.encode(board_w_minus_10), (1, 2, 0)).reshape(1, 8, 8, 10), verbose=False)
 
-print('---------------')
-print(predict_input_w_plus_2)
-print('---------------')
-trained_predict_equal = agent2._model.predict(predict_input_equal, verbose=False)
-trained_predict_w_plus_2 = agent2._model.predict(predict_input_w_plus_2, verbose=False)
-trained_predict_w_plus_6 = agent2._model.predict(np.transpose(encoder.encode(board_w_plus_6), (1, 2, 0)).reshape(1, 8, 8, 10), verbose=False)
-trained_predict_w_plus_10 = agent2._model.predict(np.transpose(encoder.encode(board_w_plus_10), (1, 2, 0)).reshape(1, 8, 8, 10), verbose=False)
-trained_predict_w_minus_2 = agent2._model.predict(np.transpose(encoder.encode(board_w_minus_2), (1, 2, 0)).reshape(1, 8, 8, 10), verbose=False)
-trained_predict_w_minus_6 = agent2._model.predict(np.transpose(encoder.encode(board_w_minus_6), (1, 2, 0)).reshape(1, 8, 8, 10), verbose=False)
-trained_predict_w_minus_10 = agent2._model.predict(np.transpose(encoder.encode(board_w_minus_10), (1, 2, 0)).reshape(1, 8, 8, 10), verbose=False)
+
+# print(np.expand_dims(equal_board.board, axis=(0,-1)))
+
+
+### Oneplane
+predict_equal = agent1._model.predict(np.expand_dims(equal_board.board, axis=(0,-1)), verbose=False)
+predict_w_plus_2 = agent1._model.predict(np.expand_dims(board_w_plus_2.board, axis=(0,-1)), verbose=False)
+predict_w_plus_6 = agent1._model.predict(np.expand_dims(board_w_plus_6.board, axis=(0,-1)), verbose=False)
+predict_w_plus_10 = agent1._model.predict(np.expand_dims(board_w_plus_10.board, axis=(0,-1)), verbose=False)
+predict_w_minus_2 = agent1._model.predict(np.expand_dims(board_w_minus_2.board, axis=(0,-1)), verbose=False)
+predict_w_minus_6 = agent1._model.predict(np.expand_dims(board_w_minus_6.board, axis=(0,-1)), verbose=False)
+predict_w_minus_10 = agent1._model.predict(np.expand_dims(board_w_minus_10.board, axis=(0,-1)), verbose=False)
+trained_predict_equal = agent2._model.predict(np.expand_dims(equal_board.board, axis=(0,-1)), verbose=False)
+trained_predict_w_plus_2 = agent2._model.predict(np.expand_dims(board_w_plus_2.board, axis=(0,-1)), verbose=False)
+trained_predict_w_plus_6 = agent2._model.predict(np.expand_dims(board_w_plus_6.board, axis=(0,-1)), verbose=False)
+trained_predict_w_plus_10 = agent2._model.predict(np.expand_dims(board_w_plus_10.board, axis=(0,-1)), verbose=False)
+trained_predict_w_minus_2 = agent2._model.predict(np.expand_dims(board_w_minus_2.board, axis=(0,-1)), verbose=False)
+trained_predict_w_minus_6 = agent2._model.predict(np.expand_dims(board_w_minus_6.board, axis=(0,-1)), verbose=False)
+trained_predict_w_minus_10 = agent2._model.predict(np.expand_dims(board_w_minus_10.board, axis=(0,-1)), verbose=False)
 
 print('Previous model')
 print('---------------')

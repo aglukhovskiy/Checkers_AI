@@ -102,20 +102,35 @@ def simulate_game(white_player, black_player, game_num_for_record):
 
 def layers(input_shape):
     return [
-        ZeroPadding2D(padding=3, input_shape=input_shape, data_format='channels_first'),  # <1>
-        Conv2D(48, (7, 7), data_format='channels_first'),
+        ZeroPadding2D(padding=3, input_shape=input_shape),  # <1>
+        Conv2D(48, (7, 7)),
         Activation('relu'),
 
-        ZeroPadding2D(padding=2, data_format='channels_first'),  # <2>
-        Conv2D(32, (5, 5), data_format='channels_first'),
+        ZeroPadding2D(padding=2),  # <2>
+        Conv2D(32, (5, 5)),
         Activation('relu'),
 
-        ZeroPadding2D(padding=2, data_format='channels_first'),
-        Conv2D(32, (5, 5), data_format='channels_first'),
+        ZeroPadding2D(padding=2),
+        Conv2D(32, (5, 5)),
         Activation('relu'),
 
-        ZeroPadding2D(padding=2, data_format='channels_first'),
-        Conv2D(32, (5, 5), data_format='channels_first'),
+        ZeroPadding2D(padding=2),
+        Conv2D(32, (5, 5)),
+
+        # ZeroPadding2D(padding=3, input_shape=input_shape, data_format='channels_first'),  # <1>
+        # Conv2D(48, (7, 7), data_format='channels_first'),
+        # Activation('relu'),
+        #
+        # ZeroPadding2D(padding=2, data_format='channels_first'),  # <2>
+        # Conv2D(32, (5, 5), data_format='channels_first'),
+        # Activation('relu'),
+        #
+        # ZeroPadding2D(padding=2, data_format='channels_first'),
+        # Conv2D(32, (5, 5), data_format='channels_first'),
+        # Activation('relu'),
+        #
+        # ZeroPadding2D(padding=2, data_format='channels_first'),
+        # Conv2D(32, (5, 5), data_format='channels_first'),
         Activation('relu'),
 
         Flatten(),
@@ -123,7 +138,7 @@ def layers(input_shape):
         Activation('relu'),
     ]
 
-def create_model(input_shape=(10, 8, 8)):  # Изменяем порядок размерностей
+def create_model(input_shape=(8, 8, 1)):  # Изменяем порядок размерностей
     """Создаёт модель нейронной сети для агента"""
     model = Sequential()
     for layer in layers(input_shape):
@@ -250,27 +265,36 @@ if __name__ == "__main__":
     # )
 
     # 2. Для обучения агента на основе собранного опыта
-    trained_agent=train_agent(
-        agent_filename='models_n_exp/test_model_small.hdf5',
-        experience_filename='models_n_exp/experience_checkers_all_iters.hdf5',
-        learning_rate=0.01,
-        batch_size=128,
-        epochs=1
-    )
-    with h5py.File('models_n_exp/test_model_small_trained.hdf5', 'w') as model_outf:
-        trained_agent.serialize(model_outf)
+    # trained_agent=train_agent(
+    #     agent_filename='models_n_exp/test_model_small.hdf5',
+    #     experience_filename='models_n_exp/experience_checkers_all_iters_one_plane.hdf5',
+    #     learning_rate=0.01,
+    #     batch_size=128,
+    #     epochs=1
+    # )
+    # with h5py.File('models_n_exp/test_model_small_trained.hdf5', 'w') as model_outf:
+    #     trained_agent.serialize(model_outf)
 
-    # model=create_model()
-    # encoder = TenPlaneEncoder()
-    # new_agent = PolicyAgent(model, encoder)
-    # with h5py.File('models_n_exp/test_model_small.hdf5', 'w') as model_outf:
-    #     new_agent.serialize(model_outf)
+    model=create_model()
+    encoder = TenPlaneEncoder()
+    new_agent = PolicyAgent(model, encoder)
+    with h5py.File('models_n_exp/test_model_small.hdf5', 'w') as model_outf:
+        new_agent.serialize(model_outf)
 
     # with h5py.File('models_n_exp/test_model.hdf5', 'r') as agent_file:
     #     bot = load_policy_agent(agent_file)
     # res = simulate_game(bot,bot,1)
     # print(res)
 
+    trained_agent=train_agent(
+        agent_filename='models_n_exp/test_model_small.hdf5',
+        experience_filename='models_n_exp/experience_checkers_all_iters_one_plane.hdf5',
+        learning_rate=0.03,
+        batch_size=256,
+        epochs=3
+    )
+    with h5py.File('models_n_exp/test_model_small_trained.hdf5', 'w') as model_outf:
+        trained_agent.serialize(model_outf)
 
 
 

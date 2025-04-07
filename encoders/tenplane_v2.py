@@ -108,23 +108,29 @@ class TenPlaneEncoder:
             # return '  |  '
             return '  |@ '
 
-    def show_board_from_matrix(self, matrix):
-        matrix_to_show = np.zeros((8,8))
-        for row in range(8):
-            for col in range(8):
-                if matrix[0][row][col]==1:
-                    matrix_to_show[row][col]=1
-                if matrix[1][row][col]==1:
-                    matrix_to_show[row][col]=3
-                if matrix[2][row][col]==1:
-                    matrix_to_show[row][col]=-1
-                if matrix[3][row][col]==1:
-                    matrix_to_show[row][col]=-3
-        for row in matrix_to_show:
-            print(" ".join(self.symbols_change(num) for num in row))
-
     def show_board(self, game):
         for row in game.board:
             print(" ".join(self.symbols_change(num) for num in row))
+
+    def ten_to_one_plane_matrix(self, ten_plane):
+        one_plane = np.zeros((8,8))
+        for row in range(8):
+            for col in range(8):
+                if ten_plane[0][row][col]==1:
+                    one_plane[row][col]=1
+                if ten_plane[1][row][col]==1:
+                    one_plane[row][col]=3
+                if ten_plane[2][row][col]==1:
+                    one_plane[row][col]=-1
+                if ten_plane[3][row][col]==1:
+                    one_plane[row][col]=-3
+        return one_plane
+
+    def show_board_from_matrix(self, ten_plane):
+        one_plane = self.ten_to_one_plane_matrix(ten_plane)
+        for row in one_plane:
+            print(" ".join(self.symbols_change(num) for num in row))
+
+
 def create():
     return TenPlaneEncoder()

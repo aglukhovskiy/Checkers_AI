@@ -28,7 +28,8 @@ class PolicyAgent:
 
     def _prepare_input(self, board_tensor):
         # Данные уже в формате (10, 8, 8), просто добавляем размерность батча
-        return board_tensor.reshape(1, 10, 8, 8)
+        return np.expand_dims(np.transpose(board_tensor, (1, 2, 0)), axis=0)
+        # return board_tensor.reshape(1, 10, 8, 8)
 
     def select_move(self, game, game_num_for_record):
         """Выбирает ход на основе текущего состояния игры"""
