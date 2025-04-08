@@ -15,6 +15,7 @@ import pygame
 import timeit
 from rl.kerasutil import kerasutil_save_model_to_hdf5_group, kerasutil_load_model_from_hdf5_group
 from rl.pg_agent import PolicyAgent, load_policy_agent
+from rl.q_agent import QAgent, load_q_agent
 from networks.small import layers
 
 from keras.models import Model
@@ -149,24 +150,24 @@ def create_model_q_training(input_shape=(13, 8, 8)):  # Изменяем пор�
     conv1a=ZeroPadding2D(padding=3)(board_input)
     conv1b=Conv2D(48, (7, 7), activation='relu')(conv1a)
     conv2a = ZeroPadding2D((2, 2))(conv1b)
-    conv2b = Conv2D(32, (5, 5), actionvation='relu')(conv2a)
+    conv2b = Conv2D(32, (5, 5), activation='relu')(conv2a)
     conv3a = ZeroPadding2D((2, 2))(conv2b)
-    conv3b = Conv2D(32, (5, 5), actionvation='relu')(conv3a)
+    conv3b = Conv2D(32, (5, 5), activation='relu')(conv3a)
     conv4a = ZeroPadding2D((2, 2))(conv3b)
-    conv4b = Conv2D(32, (5, 5), actionvation='relu')(conv4a)
+    conv4b = Conv2D(32, (5, 5), activation='relu')(conv4a)
     flat = Flatten()(conv4b)
-    processed_board = Dense(512, actionvation='relu')(flat)
+    processed_board = Dense(512, activation='relu')(flat)
 
     action_conv1a=ZeroPadding2D(padding=3)(action_input)
     action_conv1b=Conv2D(48, (7, 7), activation='relu')(action_conv1a)
     action_conv2a = ZeroPadding2D((2, 2))(action_conv1b)
-    action_conv2b = Conv2D(32, (5, 5), actionvation='relu')(action_conv2a)
+    action_conv2b = Conv2D(32, (5, 5), activation='relu')(action_conv2a)
     action_conv3a = ZeroPadding2D((2, 2))(action_conv2b)
-    action_conv3b = Conv2D(32, (5, 5), actionvation='relu')(action_conv3a)
+    action_conv3b = Conv2D(32, (5, 5), activation='relu')(action_conv3a)
     action_conv4a = ZeroPadding2D((2, 2))(action_conv3b)
-    action_conv4b = Conv2D(32, (5, 5), actionvation='relu')(action_conv4a)
+    action_conv4b = Conv2D(32, (5, 5), activation='relu')(action_conv4a)
     action_flat = Flatten()(action_conv4b)
-    action_processed_board = Dense(512, actionvation='relu')(action_flat)
+    action_processed_board = Dense(512, activation='relu')(action_flat)
     board_and_action = concatenate([action_processed_board, processed_board])
     hidden_layer = Dense(256, activation='relu')(board_and_action)
     value_output = Dense(1, activation='linear')(hidden_layer)
@@ -276,6 +277,25 @@ def train_agent(agent_filename, experience_filename, learning_rate=0.01, batch_s
 
     return agent
 
+def train_q_agent(agent_filename, experience_filename, learning_rate=0.01, batch_size=512, epochs=1):
+    """Обучает агента на основе опыта"""
+
+    # Загружаем агента
+    with h5py.File(agent_filename, 'r') as agent_file:
+        agent = load_q_agent(agent_file)
+
+    # Загружаем опыт
+    with h5py.File(experience_filename, 'r') as experience_file:
+        experience = load_experience(experience_file)
+
+    # Обучаем агента
+    agent.train(experience, lr=learning_rate, batch_size=batch_size, epochs=epochs)
+
+    # # Сохраняем обновленного агента
+    # with h5py.File(agent_filename, 'w') as agent_file:
+    #     agent.serialize(agent_file)
+
+    return agent
 
 # Пример использования
 if __name__ == "__main__":
@@ -301,10 +321,12 @@ if __name__ == "__main__":
     # with h5py.File('models_n_exp/test_model_small_trained.hdf5', 'w') as model_outf:
     #     trained_agent.serialize(model_outf)
 
-    model=create_model()
+    # model=create_model()
+    model=create_model_q_training()
     encoder = ThirteenPlaneEncoder()
-    new_agent = PolicyAgent(model, encoder)
-    with h5py.File('models_n_exp/test_model_small.hdf5', 'w') as model_outf:
+    # new_agent = PolicyAgent(model, encoder)
+    new_agent = QAgent(model, encoder)
+    with h5py.File('models_n_exp/test_q_model_small.hdf5', 'w') as model_outf:
         new_agent.serialize(model_outf)
 
     # with h5py.File('models_n_exp/test_model.hdf5', 'r') as agent_file:
@@ -312,16 +334,17 @@ if __name__ == "__main__":
     # res = simulate_game(bot,bot,1)
     # print(res)
 
-    trained_agent=train_agent(
-        agent_filename='models_n_exp/test_model_small.hdf5',
+    trained_agent=train_q_agent(
+        agent_filename='models_n_exp/test_q_model_small.hdf5',
         experience_filename='models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages.hdf5',
-        learning_rate=0.03,
-        batch_size=128,
+        learning_rate=0.02,
+        batch_size=64,
         epochs=1
     )
-    with h5py.File('models_n_exp/test_model_small_trained.hdf5', 'w') as model_outf:
+    with h5py.File('models_n_exp/test_q_model_small_trained.hdf5', 'w') as model_outf:
         trained_agent.serialize(model_outf)
     # 0.7141
+    # 0.7135
 
     # trained_agent=train_agent(
     #     agent_filename='models_n_exp/test_model_small.hdf5',

@@ -1,6 +1,7 @@
 from experience import load_experience, combine_experience
 import h5py
-from rl.pg_agent import PolicyAgent, load_policy_agent
+# from rl.pg_agent import PolicyAgent, load_policy_agent
+from rl.q_agent import QAgent, load_q_agent
 import numpy as np
 import encoders
 from Board_v2 import CheckersGame
@@ -11,9 +12,12 @@ encoder = encoders.get_encoder_by_name('thirteenplane')
 
 # exp = load_experience(h5py.File('test_6_plane_1000_games.hdf5'))
 
-agent1 = load_policy_agent(h5py.File('models_n_exp/test_model_small.hdf5'))
-# agent1.train(load_experience(h5py.File('models_n_exp/test_10_plane_500_games.hdf5')), lr=0.02)
-agent2 = load_policy_agent(h5py.File('models_n_exp/test_model_small_trained.hdf5'))
+# agent1 = load_policy_agent(h5py.File('models_n_exp/test_model_small.hdf5'))
+# # agent1.train(load_experience(h5py.File('models_n_exp/test_10_plane_500_games.hdf5')), lr=0.02)
+# agent2 = load_policy_agent(h5py.File('models_n_exp/test_model_small_trained.hdf5'))
+
+agent1 = load_q_agent(h5py.File('models_n_exp/test_q_model_small.hdf5'))
+agent2 = load_q_agent(h5py.File('models_n_exp/test_q_model_small.hdf5'))
 
 print(agent2._encoder)
 
