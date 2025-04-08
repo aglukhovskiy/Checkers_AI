@@ -1,6 +1,7 @@
 from rl.kerasutil import kerasutil_save_model_to_hdf5_group, kerasutil_load_model_from_hdf5_group
 import random
-from encoders.tenplane_v2 import TenPlaneEncoder
+# from encoders.tenplane_v2 import TenPlaneEncoder
+import encoders
 from copy import deepcopy
 import numpy as np
 from keras.optimizers import SGD
@@ -79,14 +80,17 @@ class PolicyAgent:
             simulated_boards.append(simulated_game)
             board_tensor = self._encoder.encode(simulated_game)
             board_tensors.append(board_tensor)
-            x = self._prepare_input(board_tensor)
-            x_list.append(x)
+            # x = self._prepare_input(board_tensor)
+            # x_list.append(x)
 
         # Либо исследуем случайные ходы, либо следуем текущей политике
         if np.random.random() < self._temperature:
             move_probs = np.ones(num_moves) / num_moves
         else:
-            move_probs = [self._model.predict(x, verbose=0)[0][0] for x in x_list]
+            move_probs = [self._model.predict(np.array([board_tensor]), verbose=0)[0][0] for board_tensor in board_tensors]
+
+        if game.current_player==-1:
+            move_probs = [-x for x in move_probs]
 
         # Предотвращаем вероятности 0 или 1
         eps = 1e-5
@@ -106,7 +110,7 @@ class PolicyAgent:
                 self._collector.record_decision(
                     state=self._encoder.encode(game),
                     action_result=board_tensors[ranked_moves[0]],
-                    white_turns=1 if game.current_player == 1 else 0,
+                    white_turns=game.current_player,
                     game_nums=game_num_for_record
                 )
 
@@ -123,6 +127,7 @@ class PolicyAgent:
         h5file['encoder'].attrs['name'] = self._encoder.name()
         h5file.create_group('model')
         kerasutil_save_model_to_hdf5_group(self._model, h5file['model'])
+        print(self._encoder.name())
 
     def train(self, experience, lr=0.01, clipnorm=1.0, batch_size=512, epochs=1):
         """Обучает модель на основе опыта"""
@@ -133,8 +138,8 @@ class PolicyAgent:
         # Translate the actions/rewards.
         y = np.zeros(n)
         for i in range(n):
-            reward = experience.rewards[i]
-            y[i] = reward
+            advantage = experience.advantages[i]
+            y[i] = advantage
 
         # Данные уже в формате (None, 10, 8, 8)
         x = experience.action_results
@@ -148,10 +153,9 @@ def load_policy_agent(h5file):
     model = kerasutil_load_model_from_hdf5_group(
         h5file['model'],
         custom_objects={'policy_gradient_loss': policy_gradient_loss})
-
     encoder_name = h5file['encoder'].attrs['name']
     if not isinstance(encoder_name, str):
         encoder_name = encoder_name.decode('ascii')
-
-    encoder = TenPlaneEncoder()
+    encoder = encoders.get_encoder_by_name(
+        encoder_name)
     return PolicyAgent(model, encoder)
