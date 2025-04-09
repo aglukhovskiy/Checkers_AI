@@ -40,7 +40,7 @@ class ExperienceCollector:
         self._current_episode_white_turns.append(white_turns)
         self._current_episode_game_nums.append(game_nums)
 
-    def complete_episode(self, reward):
+    def complete_episode(self, reward, advantages):
         num_states = len(self._current_episode_states)
         self.states += self._current_episode_states
         # self.actions += self._current_episode_actions
@@ -48,10 +48,11 @@ class ExperienceCollector:
         self.white_turns += self._current_episode_white_turns
         self.game_nums += self._current_episode_game_nums
         self.rewards += [reward for _ in range(num_states)]
+        self.advantages += advantages
 
-        for i in range(num_states):
-            advantage = reward - self._current_episode_estimated_values[i]
-            self.advantages.append(advantage)
+        # for i in range(num_states):
+        #     advantage = reward - self._current_episode_estimated_values[i]
+        #     self.advantages.append(advantage)
 
         self._current_episode_states = []
         # self._current_episode_actions = []

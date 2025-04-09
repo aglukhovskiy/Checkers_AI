@@ -80,20 +80,17 @@ class QAgent:
             simulated_boards.append(simulated_game)
             board_tensor = self._encoder.encode(simulated_game)
             board_tensors.append(board_tensor)
-            # x = self._prepare_input(board_tensor)
-            # x_list.append(x)
 
-
+        # Кодируем текущее состояние доски
         current_state_encoded = self._encoder.encode(game)
-        # Либо исследуем случайные ходы, либо следуем текущей политике
-        if np.random.random() < self._temperature:
-            move_probs = np.ones(num_moves) / num_moves
-        else:
-            move_probs = [self._model.predict([current_state_encoded,np.array([board_tensor])], verbose=0)[0][0] for board_tensor in board_tensors]
-
-        if game.current_player==-1:
-            move_probs = [-x for x in move_probs]
-
+        
+        # Подготавливаем входные данные для модели
+        current_state_batch = np.array([current_state_encoded] * num_moves)  # Повторяем текущее состояние для каждого хода
+        next_states_batch = np.array(board_tensors)  # Все возможные следующие состояния
+        
+        # Получаем предсказания для всех ходов
+        move_probs = self._model.predict([current_state_batch, next_states_batch], verbose=0)[:, 0]
+        # print(move_probs)
         # Предотвращаем вероятности 0 или 1
         eps = 1e-5
         move_probs = np.clip(move_probs, eps, 1 - eps)
@@ -110,9 +107,9 @@ class QAgent:
             # Записываем решение, если есть коллектор
             if self._collector is not None:
                 self._collector.record_decision(
-                    state=current_state_encoded,
+                    state=self._encoder.encode(game),
                     action_result=board_tensors[ranked_moves[0]],
-                    white_turns=game.current_player,
+                    white_turns=1 if game.current_player == 1 else 0,
                     game_nums=game_num_for_record
                 )
 
@@ -131,11 +128,11 @@ class QAgent:
         kerasutil_save_model_to_hdf5_group(self._model, h5file['model'])
         # print(self._encoder.name())
 
-    def train(self, experience, lr=0.01, clipnorm=1.0, batch_size=512, epochs=1):
+    def train(self, experience, lr=0.01, clipnorm=1.0, batch_size=512, epochs=1, loss='mse'):
         """Обучает модель на основе опыта"""
         opt = SGD(learning_rate=lr, clipnorm=clipnorm)
         # self._model.compile(loss='mean_absolute_error', optimizer=opt)
-        self._model.compile(loss='mse', optimizer=opt)
+        self._model.compile(loss=loss, optimizer=opt)
 
         n = experience.action_results.shape[0]
         # Translate the actions/rewards.
@@ -144,7 +141,7 @@ class QAgent:
             advantage = experience.advantages[i]
             y[i] = advantage
 
-        # Данные уже в формате (None, 10, 8, 8)
+        # Данные уже в формате (None, 13, 8, 8)
         x = [experience.states, experience.action_results]
 
         self._model.fit(

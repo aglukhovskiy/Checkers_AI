@@ -4,11 +4,11 @@ from keras.layers.core import Dense, Activation, Flatten
 
 def layers(input_shape):
     return [
-        Dense(128, input_shape=input_shape),
+        Dense(512, input_shape=input_shape),
         Activation('relu'),
-        Dense(128, input_shape=input_shape),
+        Dense(512, input_shape=input_shape),
         Activation('relu'),
         Flatten(),
-        Dense(128),
+        Dense(512),
         Activation('relu'),
     ]

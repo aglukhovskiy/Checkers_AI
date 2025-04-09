@@ -16,7 +16,12 @@ import timeit
 from rl.kerasutil import kerasutil_save_model_to_hdf5_group, kerasutil_load_model_from_hdf5_group
 from rl.pg_agent import PolicyAgent, load_policy_agent
 from rl.q_agent import QAgent, load_q_agent
-from networks.small import layers
+# from networks.fullyconnected import layers
+# from networks.small import layers
+# from networks.medium import layers
+from eval_pg_bot import eval
+import importlib
+import csv
 
 from keras.models import Model
 from keras.layers import Conv2D, Dense, Flatten, Input
@@ -137,7 +142,7 @@ def simulate_game(white_player, black_player, game_num_for_record):
 def create_model(input_shape=(13, 8, 8)):  # Изменяем порядок размерностей
     """Создаёт модель нейронной сети для агента"""
     model = Sequential()
-    for layer in layers(input_shape):
+    for layer in layers_module.layers(input_shape):
         model.add(layer)
     model.add(Dense(1, activation='linear'))  # Выход - скор
     return model
@@ -226,23 +231,37 @@ def do_self_play(agent_filename, num_games, temperature, experience_filename):
 
         # Симулируем игру
         game_record = simulate_game(white_player, black_player, game_num_for_record=i)
+
+        collector1_advantage = []
+        collector2_advantage = []
+
+        #Вычисляем advantage
+        for i in range(len(collector1._current_episode_action_results)-1):
+            collector1_advantage.append(agent1._encoder.score(collector1._current_episode_action_results[i+1])-agent1._encoder.score(collector1._current_episode_action_results[i]))
+        collector1_advantage.append(0)
+
+
+        for i in range(len(collector2._current_episode_action_results)-1):
+            collector2_advantage.append(agent2._encoder.score(collector2._current_episode_action_results[i+1])-agent2._encoder.score(collector2._current_episode_action_results[i]))
+        collector2_advantage.append(0)
+
         # Определяем вознаграждения на основе результата игры
         if game_record.winner == color1:  # Победа белых
-            collector1.complete_episode(reward=1)
-            collector2.complete_episode(reward=-1)
+            collector1.complete_episode(reward=1, advantages=collector1_advantage)
+            collector2.complete_episode(reward=-1, advantages=collector2_advantage)
         elif game_record.winner == -color1:  # Победа черных
-            collector2.complete_episode(reward=1)
-            collector1.complete_episode(reward=-1)
+            collector2.complete_episode(reward=1, advantages=collector2_advantage)
+            collector1.complete_episode(reward=-1, advantages=collector1_advantage)
         else:  # Ничья
-            collector1.complete_episode(reward=0)
-            collector2.complete_episode(reward=0)
+            collector1.complete_episode(reward=0, advantages=collector1_advantage)
+            collector2.complete_episode(reward=0, advantages=collector2_advantage)
 
         # Меняем цвета для следующей игры
         color1 = 0 - color1
 
         # Периодически сохраняем опыт
-        if i % 100 == 0 and i > 0:
-            experience = combine_experience([collector1, collector2])
+        # if i % 100 == 0 and i > 0:
+        #     experience = combine_experience([collector1, collector2])
             # save_filename = f'{experience_filename}_{num_games}.hdf5'
             # print(f'Сохранение буфера опыта в {save_filename}')
             # # with h5py.File(save_filename, 'w') as experience_file:
@@ -257,7 +276,7 @@ def do_self_play(agent_filename, num_games, temperature, experience_filename):
         experience.serialize(experience_file)
 
 
-def train_agent(agent_filename, experience_filename, learning_rate=0.01, batch_size=512, epochs=1):
+def train_agent(agent_filename, experience_filename, learning_rate=0.01, batch_size=512, epochs=1, loss='mse'):
     """Обучает агента на основе опыта"""
 
     # Загружаем агента
@@ -269,7 +288,7 @@ def train_agent(agent_filename, experience_filename, learning_rate=0.01, batch_s
         experience = load_experience(experience_file)
 
     # Обучаем агента
-    agent.train(experience, lr=learning_rate, batch_size=batch_size, epochs=epochs)
+    agent.train(experience, lr=learning_rate, batch_size=batch_size, epochs=epochs, loss=loss)
 
     # # Сохраняем обновленного агента
     # with h5py.File(agent_filename, 'w') as agent_file:
@@ -277,7 +296,7 @@ def train_agent(agent_filename, experience_filename, learning_rate=0.01, batch_s
 
     return agent
 
-def train_q_agent(agent_filename, experience_filename, learning_rate=0.01, batch_size=512, epochs=1):
+def train_q_agent(agent_filename, experience_filename, learning_rate=0.01, batch_size=512, epochs=1, loss='mse'):
     """Обучает агента на основе опыта"""
 
     # Загружаем агента
@@ -289,13 +308,46 @@ def train_q_agent(agent_filename, experience_filename, learning_rate=0.01, batch
         experience = load_experience(experience_file)
 
     # Обучаем агента
-    agent.train(experience, lr=learning_rate, batch_size=batch_size, epochs=epochs)
+    agent.train(experience, lr=learning_rate, batch_size=batch_size, epochs=epochs, loss=loss)
 
     # # Сохраняем обновленного агента
     # with h5py.File(agent_filename, 'w') as agent_file:
     #     agent.serialize(agent_file)
 
     return agent
+
+def reinforce(agent_filename, out_experience_filename, num_games, num_iterations, prev_experience_filename=None, learning_rate=0.01, batch_size=512, epochs=1, temperature=0.05):
+
+    for j in range(num_iterations):
+        print('starting {} iteration'.format(j+1))
+        do_self_play(agent_filename=agent_filename, num_games=num_games, temperature=temperature,
+                         experience_filename='models_n_exp/experience_checkers_reinforce_{}_iter'.format(j))
+        trained_agent = train_agent(
+            agent_filename=agent_filename,
+            experience_filename='models_n_exp/experience_checkers_reinforce_{}_iter.hdf5'.format(j),
+            learning_rate=learning_rate,
+            batch_size=batch_size,
+            epochs=epochs
+        )
+        with h5py.File(agent_filename, 'w') as model_outf:
+            trained_agent.serialize(model_outf)
+
+    exp_list = []
+
+    if prev_experience_filename:
+        exp_list.append(load_experience(h5py.File(prev_experience_filename)))
+
+    for k in range(num_iterations):
+        exp_list.append(load_experience(h5py.File('models_n_exp/experience_checkers_reinforce_{}_iter.hdf5'.format(k))))
+
+    total_exp = combine_experience(exp_list)
+
+    with h5py.File(out_experience_filename, 'w') as experience_outf:
+        total_exp.serialize(experience_outf)
+
+    for z in range(num_iterations):
+        os.remove('models_n_exp/experience_checkers_reinforce_{}_iter.hdf5'.format(z))
+
 
 # Пример использования
 if __name__ == "__main__":
@@ -321,66 +373,109 @@ if __name__ == "__main__":
     # with h5py.File('models_n_exp/test_model_small_trained.hdf5', 'w') as model_outf:
     #     trained_agent.serialize(model_outf)
 
+    model_name = 'small'
+    lr = 0.03
+    batch_size = 512
+    q=False
+    loss='mse'
+    if q:
+        q_str = 'q_'
+    else:
+        q_str = ''
+    # pool_size = load_experience(h5py.File(
+    #     'models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages_w_reinforce.hdf5')).states.shape[0]
+    # layers_module = importlib.import_module('networks.' + model_name)
+    #
     # model=create_model()
-    model=create_model_q_training()
-    encoder = ThirteenPlaneEncoder()
+    # # model=create_model_q_training()
+    # encoder = ThirteenPlaneEncoder()
     # new_agent = PolicyAgent(model, encoder)
-    new_agent = QAgent(model, encoder)
-    with h5py.File('models_n_exp/test_q_model_small.hdf5', 'w') as model_outf:
-        new_agent.serialize(model_outf)
-
-    # with h5py.File('models_n_exp/test_model.hdf5', 'r') as agent_file:
-    #     bot = load_policy_agent(agent_file)
-    # res = simulate_game(bot,bot,1)
-    # print(res)
-
-    trained_agent=train_q_agent(
-        agent_filename='models_n_exp/test_q_model_small.hdf5',
-        experience_filename='models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages.hdf5',
-        learning_rate=0.02,
-        batch_size=64,
-        epochs=1
-    )
-    with h5py.File('models_n_exp/test_q_model_small_trained.hdf5', 'w') as model_outf:
-        trained_agent.serialize(model_outf)
-    # 0.7141
-    # 0.7135
-
+    # # new_agent = QAgent(model, encoder)
+    # with h5py.File('models_n_exp/test_model_{}.hdf5'.format(model_name), 'w') as model_outf:
+    #     new_agent.serialize(model_outf)
+    #
     # trained_agent=train_agent(
-    #     agent_filename='models_n_exp/test_model_small.hdf5',
-    #     experience_filename='experience_checkers_250.hdf5',
-    #     learning_rate=0.01,
-    #     batch_size=512,
-    #     epochs=1
+    #     agent_filename='models_n_exp/test_model_{}.hdf5'.format(model_name),
+    #     experience_filename='models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages_w_reinforce.hdf5',
+    #     # experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages_w_reinforce
+    #     # experience_filename='models_n_exp/experience_checkers_reinforce_all_iters.hdf5',
+    #     learning_rate=lr,
+    #     batch_size=batch_size,
+    #     epochs=1,
+    #     loss=loss
     # )
-    # with h5py.File('models_n_exp/test_model_trained.hdf5', 'w') as model_outf:
+    # with h5py.File('models_n_exp/test_model_{}_{}_{}_{}trained.hdf5'.format(model_name,lr,batch_size,q_str), 'w') as model_outf:
     #     trained_agent.serialize(model_outf)
-    #
-    # for j in range(25):
-    #     print('starting {} iteration'.format(j+1))
-    #     do_self_play(agent_filename='models_n_exp/test_model_trained.hdf5', num_games=100, temperature=0.1,
-    #                      experience_filename='models_n_exp/experience_checkers_{}_iter'.format(j))
-    #     trained_agent = train_agent(
-    #         agent_filename='models_n_exp/test_model_trained.hdf5',
-    #         experience_filename='models_n_exp/experience_checkers_{}_iter.hdf5'.format(j),
-    #         learning_rate=0.01,
-    #         batch_size=512,
-    #         epochs=1
+
+    # reinforce(
+    #     agent_filename='models_n_exp/test_model_small_0.03_512_trained.hdf5',
+    #     out_experience_filename='models_n_exp/experience_checkers_reinforce_all_iters.hdf5',
+    #     prev_experience_filename='models_n_exp/experience_checkers_reinforce_all_iters.hdf5',
+    #     num_games=100,
+    #     num_iterations=10,
+    #     learning_rate=0.03,
+    #     batch_size=512,
+    #     epochs=1,
+    #     temperature=0.05
     #     )
-    #     with h5py.File('models_n_exp/test_model_trained.hdf5', 'w') as model_outf:
-    #         trained_agent.serialize(model_outf)
+
+    res = eval('models_n_exp/test_model_{}.hdf5'.format(model_name),'models_n_exp/test_model_{}_{}_{}_{}trained.hdf5'.format(model_name,lr,batch_size,q_str), 100, q=q)
+
+    # with open('training.log', 'r') as f:
+    #     file = csv.reader(f)
+    #     for row in file:
+    #         loss_value = row[1]
     #
-    # exp_list = []
+    # for i in [ lr, batch_size, pool_size, model_name, q, loss, loss_value]:
+    #     res.append(i)
     #
-    # for k in range(25):
-    #     exp_list.append(load_experience(h5py.File('models_n_exp/experience_checkers_{}_iter.hdf5'.format(k))))
+    # prev_data = []
+    # with open('results.csv', 'r') as f:
+    #     csvFile = csv.reader(f)
+    #     for i in csvFile:
+    #         prev_data.append(i)
+    #
+    # with open('results.csv', 'w', newline='') as f:
+    #     # csv.writer(f).writerow(fieldnames)
+    #     csv.writer(f).writerows(prev_data)
+    #     csv.writer(f).writerow(res)
+
+
+    # ['models_n_exp/test_model_fullyconnected.hdf5', 'models_n_exp/test_model_fullyconnected_trained.hdf5', 59, 100]
+    # ['models_n_exp/test_model_large.hdf5', 'models_n_exp/test_model_large_trained.hdf5', 56, 100]
+
+    # small, mse, 0.02, 512
+    # ['models_n_exp/test_model_small.hdf5', 'models_n_exp/test_model_small_trained.hdf5', 43, 50]
+    # ['models_n_exp/test_model_small.hdf5', 'models_n_exp/test_model_small_trained.hdf5', 46, 50]
+    # ['models_n_exp/test_model_small.hdf5', 'models_n_exp/test_model_small_trained.hdf5', 41, 50]
+
+
+    # exp1 = load_experience(h5py.File('models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages.hdf5'))
+    # exp2 = load_experience(h5py.File('models_n_exp/experience_checkers_reinforce_all_iters.hdf5'))
+    # exp_list = [exp1, exp2]
     #
     # total_exp = combine_experience(exp_list)
     #
-    # with h5py.File('models_n_exp/experience_checkers_all_iters.hdf5', 'w') as experience_outf:
+    # with h5py.File('models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages_w_reinforce.hdf5', 'w') as experience_outf:
     #     total_exp.serialize(experience_outf)
 
-    # for z in range(10):
-    #     os.remove('models_n_exp/10_plane_{}_iter_100_games.hdf5'.format(k))
 
+    # # with h5py.File('models_n_exp/test_model.hdf5', 'r') as agent_file:
+    # #     bot = load_policy_agent(agent_file)
+    # # res = simulate_game(bot,bot,1)
+    # # print(res)
 
+    # with h5py.File('models_n_exp/test_model_small.hdf5', 'r') as agent_file:
+    #     agent = load_policy_agent(agent_file)
+    #
+    # game_record = simulate_game(agent, agent, game_num_for_record=0)
+
+    # do_self_play(
+    #     agent_filename='models_n_exp/test_model_small_trained.hdf5',
+    #     num_games=1,
+    #     temperature=0.01,
+    #     experience_filename='experience_checkers'
+    # )
+
+    # fieldnames = ['model_1', 'model_2', 'wins', 'num_games','lr','batch_size','pool_size','nn_type','q']
+    # res = ['models_n_exp/test_model_small.hdf5', 'models_n_exp/test_model_small_trained.hdf5', 130, 150, lr, batch_size, pool_size, model_name, q]

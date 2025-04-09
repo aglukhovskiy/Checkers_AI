@@ -2,8 +2,24 @@ from experience import load_experience
 import h5py
 import encoders
 
-exp = load_experience(h5py.File('models_n_exp/experience_checkers_all_iters_twelve_plane_insubjective_w_advantages.hdf5'))
-encoder = encoders.get_encoder_by_name('twelveplane')
+exp = load_experience(h5py.File('models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages_w_reinforce.hdf5'))
+# experience_filename='models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages.hdf5',
+encoder = encoders.get_encoder_by_name('thirteenplane')
+
+# exp1 = load_experience(h5py.File('models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages.hdf5'))
+# exp2 = load_experience(h5py.File('models_n_exp/experience_checkers_reinforce_all_iters.hdf5'))
+
+# (122298, 13, 8, 8)
+# {0.0: 66273, -1.0: 19638, 1.0: 19597, 3.0: 1932, 2.0: 4131, -4.0: 1421, 6.0: 105, -5.0: 489, -2.0: 4378, 4.0: 1493, 5.0: 522, -3.0: 2137, -6.0: 114, -7.0: 27, 7.0: 20, 8.0: 9, -8.0: 8, 9.0: 4}
+
+print(exp.states.shape)
+cntr = {}
+for i in range(exp.advantages.shape[0]):
+    if exp.advantages[i] not in cntr:
+        cntr[exp.advantages[i]]=0
+    cntr[exp.advantages[i]]+=1
+print(cntr)
+print(exp.advantages[:100])
 
 
 # n = experience.action_results.shape[0]
@@ -19,7 +35,7 @@ encoder = encoders.get_encoder_by_name('twelveplane')
 # self._model.fit(
 #     x=x, batch_size=batch_size, y=y, epochs=epochs)
 # x = exp.action_results
-print(exp.action_results[0])
+# print(exp.action_results[0])
 # print(x[:10].shape)
 # print('---------')
 # print('---------')
@@ -81,11 +97,3 @@ print('---------')
 # print(new_list_rewards_b)
 # print(exp.states[-1])
 # print(exp.action_results[-1])
-
-cntr = {}
-for i in range(exp.advantages.shape[0]):
-    if exp.advantages[i] not in cntr:
-        cntr[exp.advantages[i]]=0
-    cntr[exp.advantages[i]]+=1
-print(cntr)
-print(exp.advantages[:100])

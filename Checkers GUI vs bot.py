@@ -353,4 +353,4 @@ def play_against_bot(agent_filename):
 
 # Пример использования
 if __name__ == "__main__":
-    play_against_bot('rl/models_n_exp/test_model.hdf5')
+    play_against_bot('rl/models_n_exp/test_model_small_0.03_512_trained.hdf5')

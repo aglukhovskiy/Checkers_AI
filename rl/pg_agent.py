@@ -5,6 +5,7 @@ import encoders
 from copy import deepcopy
 import numpy as np
 from keras.optimizers import SGD
+from keras.callbacks import CSVLogger
 
 def policy_gradient_loss(y_true, y_pred):
     """Функция потерь для обучения с помощью градиента политики"""
@@ -87,7 +88,8 @@ class PolicyAgent:
         if np.random.random() < self._temperature:
             move_probs = np.ones(num_moves) / num_moves
         else:
-            move_probs = [self._model.predict(np.array([board_tensor]), verbose=0)[0][0] for board_tensor in board_tensors]
+            # move_probs = [self._model.predict(np.array([board_tensor]), verbose=0)[0][0] for board_tensor in board_tensors]
+            move_probs = self._model.predict(np.array(board_tensors), verbose=0)[:, 0]
 
         if game.current_player==-1:
             move_probs = [-x for x in move_probs]
@@ -129,10 +131,12 @@ class PolicyAgent:
         kerasutil_save_model_to_hdf5_group(self._model, h5file['model'])
         print(self._encoder.name())
 
-    def train(self, experience, lr=0.01, clipnorm=1.0, batch_size=512, epochs=1):
+    def train(self, experience, lr=0.01, clipnorm=1.0, batch_size=512, epochs=1, loss='mse'):
         """Обучает модель на основе опыта"""
-        opt = SGD(learning_rate=lr, clipnorm=clipnorm)
-        self._model.compile(loss='mean_absolute_error', optimizer=opt)
+        # opt = SGD(learning_rate=lr, clipnorm=clipnorm)
+        opt = SGD(learning_rate=lr)
+        # self._model.compile(loss='mean_absolute_error', optimizer=opt)
+        self._model.compile(loss=loss, optimizer=opt)
 
         n = experience.action_results.shape[0]
         # Translate the actions/rewards.
@@ -143,9 +147,10 @@ class PolicyAgent:
 
         # Данные уже в формате (None, 10, 8, 8)
         x = experience.action_results
+        csv_logger = CSVLogger('training.log', append=True)
 
         self._model.fit(
-            x=x, batch_size=batch_size, y=y, epochs=epochs)
+            x=x, batch_size=batch_size, y=y, epochs=epochs, callbacks=csv_logger)
 
 
 def load_policy_agent(h5file):

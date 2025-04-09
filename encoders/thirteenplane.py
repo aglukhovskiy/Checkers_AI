@@ -200,20 +200,20 @@ class ThirteenPlaneEncoder:
     #     one_plane = self.ten_to_one_plane_matrix(ten_plane)
     #     for row in one_plane:
     #         print(" ".join(self.symbols_change(num) for num in row))
-    #
-    # def score(self, matrix):
-    #     score = 0
-    #     for row in range(8):
-    #         for col in range(8):
-    #             if matrix[0][row][col]==1:
-    #                 score+=1
-    #             if matrix[1][row][col]==1:
-    #                 score+=3
-    #             if matrix[2][row][col]==1:
-    #                 score-=1
-    #             if matrix[3][row][col]==1:
-    #                 score-=3
-    #     return score
+
+    def score(self, matrix):
+        score = 0
+        for row in range(8):
+            for col in range(8):
+                if matrix[0][row][col]==1:
+                    score+=1
+                if matrix[1][row][col]==1:
+                    score+=3
+                if matrix[2][row][col]==1:
+                    score-=1
+                if matrix[3][row][col]==1:
+                    score-=3
+        return score
 
     def ten_to_thirteen_plane_matrix(self, ten_plane):
         thirteen_plane = np.zeros((13,8,8))
