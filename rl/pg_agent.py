@@ -35,6 +35,71 @@ class PolicyAgent:
 
     def select_move(self, game, game_num_for_record):
         """Выбирает ход на основе текущего состояния игры"""
+        move_series_list = game.get_possible_moves()
+        num_moves = len(move_series_list)
+
+        if num_moves == 0:
+            game.game_is_on = 0
+            return None
+
+        simulated_boards = []
+        board_tensors = []
+
+        for i in range(num_moves):
+            simulated_game = deepcopy(game)
+            move_series = move_series_list[i]
+            simulated_game.next_turn(move_series=move_series)
+
+            simulated_boards.append(simulated_game)
+            board_tensor = self._encoder.encode(simulated_game)
+            board_tensors.append(board_tensor)
+
+        # Либо исследуем случайные ходы, либо следуем текущей политике
+        if np.random.random() < self._temperature:
+            move_probs = np.ones(num_moves) / num_moves
+        else:
+            # move_probs = [self._model.predict(np.array([board_tensor]), verbose=0)[0][0] for board_tensor in board_tensors]
+            move_probs = self._model.predict(np.array(board_tensors), verbose=0)[:, 0]
+
+        if game.current_player==-1:
+            move_probs = np.array([-x for x in move_probs])
+
+        # # Предотвращаем вероятности 0 или 1
+        eps = 1e-9
+        # move_probs = np.clip(move_probs, eps, 1 - eps)
+        # # Нормализуем отрицательные скоры
+        if min(move_probs)<0:
+            move_probs = np.clip(move_probs+min(move_probs), eps, np.inf)
+        else:
+            move_probs = np.clip(move_probs, eps, np.inf)
+
+        # Нормализуем, чтобы получить распределение вероятностей
+        move_probs = move_probs / np.sum(move_probs)
+
+        # Выбираем ход в соответствии с вероятностями
+        candidates = np.arange(num_moves)
+        try:
+            ranked_moves = np.random.choice(candidates, num_moves, replace=False, p=move_probs)
+            chosen_move = move_series_list[ranked_moves[0]]
+
+            # Записываем решение, если есть коллектор
+            if self._collector is not None:
+                self._collector.record_decision(
+                    state=self._encoder.encode(game),
+                    action_result=board_tensors[ranked_moves[0]],
+                    white_turns=game.current_player,
+                    game_nums=game_num_for_record
+                )
+
+            return chosen_move
+        except:
+            # В случае ошибки выбираем случайный ход
+            if move_series_list:
+                return random.choice(move_series_list)
+            return None
+
+    def select_move_gui(self, game, game_num_for_record):
+        """Выбирает ход на основе текущего состояния игры"""
         moves = game.available_moves()[0]
         num_moves = len(moves)
 
@@ -92,7 +157,7 @@ class PolicyAgent:
             move_probs = self._model.predict(np.array(board_tensors), verbose=0)[:, 0]
 
         if game.current_player==-1:
-            move_probs = [-x for x in move_probs]
+            move_probs = np.array([-x for x in move_probs])
 
         # Предотвращаем вероятности 0 или 1
         eps = 1e-5
@@ -133,8 +198,8 @@ class PolicyAgent:
 
     def train(self, experience, lr=0.01, clipnorm=1.0, batch_size=512, epochs=1, loss='mse'):
         """Обучает модель на основе опыта"""
-        # opt = SGD(learning_rate=lr, clipnorm=clipnorm)
-        opt = SGD(learning_rate=lr)
+        opt = SGD(learning_rate=lr, clipnorm=clipnorm)
+        # opt = SGD(learning_rate=lr)
         # self._model.compile(loss='mean_absolute_error', optimizer=opt)
         self._model.compile(loss=loss, optimizer=opt)
 

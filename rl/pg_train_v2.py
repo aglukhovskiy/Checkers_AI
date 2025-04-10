@@ -8,7 +8,7 @@ from tensorflow import keras
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten, Conv2D, ZeroPadding2D
 from keras.optimizers import SGD
-from encoders import TenPlaneEncoder, ThirteenPlaneEncoder
+from encoders import get_encoder_by_name
 from rl.experience import ExperienceCollector, combine_experience, load_experience
 from Board_v2 import CheckersGame
 import pygame
@@ -34,7 +34,7 @@ class GameRecord(namedtuple('GameRecord', 'moves winner margin')):
 
 def simulate_game(white_player, black_player, game_num_for_record):
     """Симулирует игру между двумя агентами"""
-    moves = []
+    move_series_list = []
     game = CheckersGame()
 
     agents = {
@@ -50,37 +50,14 @@ def simulate_game(white_player, black_player, game_num_for_record):
         current_agent = agents[game.current_player]
 
         # Получаем ход от агента
-        next_move = current_agent.select_move(game, game_num_for_record)
-        if next_move is None:
+        next_move_series = current_agent.select_move(game, game_num_for_record)
+        if next_move_series is None:
             break
 
         # Добавляем ход в историю
-        moves.append(next_move)
+        move_series_list.append(next_move_series)
 
-        # Проверяем тип next_move и выполняем его
-        if isinstance(next_move, tuple) and len(next_move) >= 6:
-            # Выполняем одиночный ход
-            is_capture = next_move[2] is not None
-            game.move_piece(next_move, capture_move=is_capture)
-
-            # Проверяем множественное взятие
-            if is_capture:
-                next_pos = (next_move[4], next_move[5])
-                while True:
-                    next_captures = game.get_first_capture_moves(next_pos)
-                    if not next_captures:
-                        break
-
-                    # Выполняем следующее взятие
-                    next_capture = next_captures[0]
-                    is_capture = next_capture[2] is not None
-                    game.move_piece(next_capture, capture_move=is_capture)
-                    next_pos = (next_capture[4], next_capture[5])
-                    moves.append(next_capture)
-
-        # Переключаем игрока
-        game.current_player = -game.current_player
-        game.check_winner()
+        game.next_turn(next_move_series)
 
         # Проверяем, закончилась ли игра
         if game.game_is_on == 0:
@@ -96,7 +73,7 @@ def simulate_game(white_player, black_player, game_num_for_record):
     game_result, game_margin = game.compute_results()
 
     return GameRecord(
-        moves=moves,
+        moves=move_series_list,
         winner=game_result,
         margin=game_margin,
     )
@@ -139,7 +116,7 @@ def simulate_game(white_player, black_player, game_num_for_record):
 #         Activation('relu'),
 #     ]
 
-def create_model(input_shape=(13, 8, 8)):  # Изменяем порядок размерностей
+def create_model(input_shape=(15, 8, 8)):  # Изменяем порядок размерностей
     """Создаёт модель нейронной сети для агента"""
     model = Sequential()
     for layer in layers_module.layers(input_shape):
@@ -147,7 +124,7 @@ def create_model(input_shape=(13, 8, 8)):  # Изменяем порядок р�
     model.add(Dense(1, activation='linear'))  # Выход - скор
     return model
 
-def create_model_q_training(input_shape=(13, 8, 8)):  # Изменяем порядок размерностей
+def create_model_q_training(input_shape=(15, 8, 8)):  # Изменяем порядок размерностей
     """Создаёт модель нейронной сети для агента"""
     board_input = Input(shape=input_shape, name='board_input')
     action_input = Input(shape=input_shape, name='action_input')
@@ -374,7 +351,7 @@ if __name__ == "__main__":
     #     trained_agent.serialize(model_outf)
 
     model_name = 'small'
-    lr = 0.03
+    lr = 0.04
     batch_size = 512
     q=False
     loss='mse'
@@ -382,21 +359,23 @@ if __name__ == "__main__":
         q_str = 'q_'
     else:
         q_str = ''
-    # pool_size = load_experience(h5py.File(
-    #     'models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages_w_reinforce.hdf5')).states.shape[0]
+    encoder_name = 'fiveteenplane'
     # layers_module = importlib.import_module('networks.' + model_name)
-    #
+    # pool_size = load_experience(h5py.File(
+    #     'models_n_exp/experience_checkers_all_iters_fiveteen_plane_insubjective_w_advantages_w_reinforce.hdf5')).states.shape[0]
+
+
     # model=create_model()
     # # model=create_model_q_training()
-    # encoder = ThirteenPlaneEncoder()
+    # encoder = get_encoder_by_name(encoder_name)
     # new_agent = PolicyAgent(model, encoder)
     # # new_agent = QAgent(model, encoder)
-    # with h5py.File('models_n_exp/test_model_{}.hdf5'.format(model_name), 'w') as model_outf:
+    # with h5py.File('models_n_exp/test_model_{}_{}.hdf5'.format(model_name, encoder_name), 'w') as model_outf:
     #     new_agent.serialize(model_outf)
     #
     # trained_agent=train_agent(
-    #     agent_filename='models_n_exp/test_model_{}.hdf5'.format(model_name),
-    #     experience_filename='models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages_w_reinforce.hdf5',
+    #     agent_filename='models_n_exp/test_model_{}_{}.hdf5'.format(model_name, encoder_name),
+    #     experience_filename='models_n_exp/experience_checkers_all_iters_fiveteen_plane_insubjective_w_advantages_w_reinforce.hdf5',
     #     # experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages_w_reinforce
     #     # experience_filename='models_n_exp/experience_checkers_reinforce_all_iters.hdf5',
     #     learning_rate=lr,
@@ -404,22 +383,26 @@ if __name__ == "__main__":
     #     epochs=1,
     #     loss=loss
     # )
-    # with h5py.File('models_n_exp/test_model_{}_{}_{}_{}trained.hdf5'.format(model_name,lr,batch_size,q_str), 'w') as model_outf:
+    # with h5py.File('models_n_exp/test_model_{}_{}_{}_{}_{}trained.hdf5'.format(model_name,encoder_name,lr,batch_size,q_str), 'w') as model_outf:
     #     trained_agent.serialize(model_outf)
 
-    # reinforce(
-    #     agent_filename='models_n_exp/test_model_small_0.03_512_trained.hdf5',
-    #     out_experience_filename='models_n_exp/experience_checkers_reinforce_all_iters.hdf5',
-    #     prev_experience_filename='models_n_exp/experience_checkers_reinforce_all_iters.hdf5',
-    #     num_games=100,
-    #     num_iterations=10,
-    #     learning_rate=0.03,
-    #     batch_size=512,
-    #     epochs=1,
-    #     temperature=0.05
-    #     )
+    reinforce(
+        # agent_filename='models_n_exp/test_model_{}_{}_{}_{}_{}trained.hdf5'.format(model_name,encoder_name,lr,batch_size,q_str),
+        agent_filename='models_n_exp/test_model_{}_{}_to_train.hdf5'.format(model_name, encoder_name),
+        out_experience_filename='models_n_exp/experience_checkers_reinforce_all_iters_fiveteenplane.hdf5',
+        prev_experience_filename='models_n_exp/experience_checkers_reinforce_all_iters_fiveteenplane.hdf5',
+        num_games=100,
+        num_iterations=10,
+        learning_rate=0.03,
+        batch_size=512,
+        epochs=1,
+        temperature=0.05
+        )
 
-    res = eval('models_n_exp/test_model_{}.hdf5'.format(model_name),'models_n_exp/test_model_{}_{}_{}_{}trained.hdf5'.format(model_name,lr,batch_size,q_str), 100, q=q)
+    # res = eval('models_n_exp/test_model_{}_{}.hdf5'.format(model_name, encoder_name),'models_n_exp/test_model_{}_{}_{}_{}_{}trained.hdf5'.format(model_name,encoder_name,lr,batch_size,q_str), 100, q=q)
+    res = eval('models_n_exp/test_model_{}_{}.hdf5'.format(model_name, encoder_name),
+               'models_n_exp/test_model_{}_{}_to_train.hdf5'.format(model_name, encoder_name), 100,
+               q=q)
 
     # with open('training.log', 'r') as f:
     #     file = csv.reader(f)
@@ -451,12 +434,16 @@ if __name__ == "__main__":
 
 
     # exp1 = load_experience(h5py.File('models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages.hdf5'))
-    # exp2 = load_experience(h5py.File('models_n_exp/experience_checkers_reinforce_all_iters.hdf5'))
-    # exp_list = [exp1, exp2]
+    # exp2 = load_experience(h5py.File('models_n_exp/experience_checkers_reinforce_all_iters_fiveteenplane.hdf5'))
+    # exp_list = []
+    # exp_list.append(exp2)
+    # for k in range(8):
+    #     exp_list.append(load_experience(h5py.File('models_n_exp/experience_checkers_reinforce_{}_iter.hdf5'.format(k))))
+    #
     #
     # total_exp = combine_experience(exp_list)
     #
-    # with h5py.File('models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages_w_reinforce.hdf5', 'w') as experience_outf:
+    # with h5py.File('models_n_exp/experience_checkers_reinforce_all_iters_2.hdf5', 'w') as experience_outf:
     #     total_exp.serialize(experience_outf)
 
 
@@ -465,7 +452,7 @@ if __name__ == "__main__":
     # # res = simulate_game(bot,bot,1)
     # # print(res)
 
-    # with h5py.File('models_n_exp/test_model_small.hdf5', 'r') as agent_file:
+    # with h5py.File('models_n_exp/test_model_{}_{}_{}_{}trained.hdf5'.format(model_name,lr,batch_size,q_str), 'r') as agent_file:
     #     agent = load_policy_agent(agent_file)
     #
     # game_record = simulate_game(agent, agent, game_num_for_record=0)
@@ -479,3 +466,5 @@ if __name__ == "__main__":
 
     # fieldnames = ['model_1', 'model_2', 'wins', 'num_games','lr','batch_size','pool_size','nn_type','q']
     # res = ['models_n_exp/test_model_small.hdf5', 'models_n_exp/test_model_small_trained.hdf5', 130, 150, lr, batch_size, pool_size, model_name, q]
+
+# 2025-04-10 14:53:37.089798: F ./tensorflow/tsl/lib/monitoring/counter.h:200] Check failed: 0 <= step (0 vs. -20)Must not decrement cumulative metrics.

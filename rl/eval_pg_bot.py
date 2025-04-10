@@ -63,14 +63,14 @@ def eval(agent1_filename, agent2_filename, num_games=50, q=False):
             white_player, black_player = agent2, agent1
         else:
             black_player, white_player = agent2, agent1
-        # white_player, black_player  = agent2, agent1
+        # white_player, black_player  = agent1, agent2
         game_record = simulate_game(white_player, black_player, i)
         if game_record == color1:
             wins += 1
         else:
             losses += 1
         print('current_color - {}, winner - {}'.format(color1,game_record))
-        color1 = 0-color1
+        color1 = -color1
         print('Agent 1 record: %d/%d' % (wins, wins + losses))
 
     print('Agent 1 record: %d/%d' % (wins, wins + losses))

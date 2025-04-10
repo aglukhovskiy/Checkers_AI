@@ -207,29 +207,57 @@ import numpy as np
 # with h5py.File('models_n_exp/experience_checkers_all_iters_ten_plane_insubjective_w_advantages.hdf5', 'w') as experience_file:
 #     buffer.serialize(experience_file)
 
-## FROM 10 PLANE TO 5 PLANE
-exp = load_experience(h5py.File('models_n_exp/experience_checkers_all_iters_ten_plane_insubjective_w_advantages.hdf5'))
-encoder = encoders.get_encoder_by_name('thirteenplane')
+# ## FROM 10 PLANE TO 5 PLANE
+# exp = load_experience(h5py.File('models_n_exp/experience_checkers_all_iters_ten_plane_insubjective_w_advantages.hdf5'))
+# encoder = encoders.get_encoder_by_name('thirteenplane')
+#
+# converted_states_list = []
+# converted_action_results_list = []
+#
+# for i in range(exp.states.shape[0]):
+#     converted_states_list.append(encoder.ten_to_thirteen_plane_matrix(exp.states[i]))
+#     converted_action_results_list.append(encoder.ten_to_thirteen_plane_matrix(exp.action_results[i]))
+#
+# # print(converted_states_list)
+# # print('---------')
+# # print(np.array(converted_states_list))
+#
+# buffer = ExperienceBuffer(
+#         np.array(converted_states_list),
+#         np.array(converted_action_results_list),
+#         exp.rewards,
+#         exp.advantages,
+#         exp.white_turns,
+#         exp.game_nums
+#         )
+#
+# with h5py.File('models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages.hdf5', 'w') as experience_file:
+#     buffer.serialize(experience_file)
 
-converted_states_list = []
-converted_action_results_list = []
+# ## FROM 13 PLANE TO 15 PLANE
+# exp = load_experience(h5py.File('models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages_w_reinforce.hdf5'))
+# encoder = encoders.get_encoder_by_name('fiveteenplane')
+#
+# converted_states_list = []
+# converted_action_results_list = []
+#
+# print('len - ', exp.states.shape[0])
+# for i in range(exp.states.shape[0]):
+#     converted_states_list.append(encoder.from_wrong_thirteen(exp.states[i]))
+#     converted_action_results_list.append(encoder.from_wrong_thirteen(exp.action_results[i]))
+#     if i%10000==0:
+#         print('cicle - ', i)
+#
+# buffer = ExperienceBuffer(
+#         np.array(converted_states_list),
+#         np.array(converted_action_results_list),
+#         exp.rewards,
+#         exp.advantages,
+#         exp.white_turns,
+#         exp.game_nums
+#         )
+#
+# with h5py.File('models_n_exp/experience_checkers_all_iters_fiveteen_plane_insubjective_w_advantages_w_reinforce.hdf5', 'w') as experience_file:
+#     buffer.serialize(experience_file)
 
-for i in range(exp.states.shape[0]):
-    converted_states_list.append(encoder.ten_to_thirteen_plane_matrix(exp.states[i]))
-    converted_action_results_list.append(encoder.ten_to_thirteen_plane_matrix(exp.action_results[i]))
 
-# print(converted_states_list)
-# print('---------')
-# print(np.array(converted_states_list))
-
-buffer = ExperienceBuffer(
-        np.array(converted_states_list),
-        np.array(converted_action_results_list),
-        exp.rewards,
-        exp.advantages,
-        exp.white_turns,
-        exp.game_nums
-        )
-
-with h5py.File('models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages.hdf5', 'w') as experience_file:
-    buffer.serialize(experience_file)

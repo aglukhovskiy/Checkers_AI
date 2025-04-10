@@ -2,7 +2,7 @@ from experience import load_experience
 import h5py
 import encoders
 
-exp = load_experience(h5py.File('models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages_w_reinforce.hdf5'))
+exp = load_experience(h5py.File('models_n_exp/experience_checkers_all_iters_fiveteen_plane_insubjective_w_advantages_w_reinforce.hdf5'))
 # experience_filename='models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages.hdf5',
 encoder = encoders.get_encoder_by_name('thirteenplane')
 

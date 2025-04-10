@@ -1,15 +1,16 @@
 import numpy as np
+from Board_v2 import CheckersGame
 
-class ThirteenPlaneEncoder:
+class FiveteenPlaneEncoder:
     """Кодирует доску шашек в 12-плоскостное представление"""
 
     def __init__(self):
-        self.num_planes = 13
+        self.num_planes = 15
         self.rows = 8
         self.cols = 8
 
     def name(self):
-        return 'thirteenplane'
+        return 'fiveteenplane'
 
     def encode(self, game):
         """Кодирует текущее состояние доски в 10-плоскостное представление
@@ -72,19 +73,19 @@ class ThirteenPlaneEncoder:
                     game_matrix[1, row, col] = 1
                 else:  # Обычная шашка
                     game_matrix[0, row, col] = 1
-                if abs(piece) > 1 and col in (0,7):
+                if col in (0,7):
                     game_matrix[10, row, col] = 1
-                elif col in (0,7):  # Обычная шашка
-                    game_matrix[10, row, col] = 1
+                elif row<7:
+                    game_matrix[13, row, col] = ((row+1,col+1) in game.pieces) + ((row+1,col-1) in game.pieces)
             else:  # Черные шашки
                 if abs(piece) > 1:  # Дамка
                     game_matrix[3, row, col] = 1
                 elif piece==-1:  # Обычная шашка
                     game_matrix[2, row, col] = 1
-                if abs(piece) > 1 and col in (0,7):  # Дамка
+                if col in (0,7):  # Дамка
                     game_matrix[11, row, col] = 1
-                elif piece==-1 and col in (0,7):  # Обычная шашка
-                    game_matrix[11, row, col] = 1
+                elif row>0:  # Обычная шашка
+                    game_matrix[14, row, col] = ((row-1,col+1) in game.pieces) + ((row-1,col-1) in game.pieces)
 
             # Отмечаем шашки под боем
             if (row, col) in threatened_pieces:
@@ -132,20 +133,20 @@ class ThirteenPlaneEncoder:
         for row in game.board:
             print(" ".join(self.symbols_change(num) for num in row))
 
-    # def ten_to_one_plane_matrix(self, ten_plane):
-    #     one_plane = np.zeros((8,8))
-    #     for row in range(8):
-    #         for col in range(8):
-    #             if ten_plane[0][row][col]==1:
-    #                 one_plane[row][col]=1
-    #             if ten_plane[1][row][col]==1:
-    #                 one_plane[row][col]=3
-    #             if ten_plane[2][row][col]==1:
-    #                 one_plane[row][col]=-1
-    #             if ten_plane[3][row][col]==1:
-    #                 one_plane[row][col]=-3
-    #     return one_plane
-    #
+    def to_one_plane_matrix(self, x_plane):
+        one_plane = np.zeros((8,8))
+        for row in range(8):
+            for col in range(8):
+                if x_plane[0][row][col]==1:
+                    one_plane[row][col]=1
+                if x_plane[1][row][col]==1:
+                    one_plane[row][col]=3
+                if x_plane[2][row][col]==1:
+                    one_plane[row][col]=-1
+                if x_plane[3][row][col]==1:
+                    one_plane[row][col]=-3
+        return one_plane
+
     # def one_to_two_plane_matrix(self, one_plane):
     #     two_plane = np.zeros((2,8,8))
     #     for row in range(8):
@@ -245,6 +246,20 @@ class ThirteenPlaneEncoder:
                     thirteen_plane[11][row][col]=1
         return thirteen_plane
 
+    def from_wrong_thirteen(self,thirteen_plane):
+        game=CheckersGame()
+        one_plane = self.to_one_plane_matrix(thirteen_plane)
+        game.board = one_plane
+        game.pieces = set()
+        for row in range(8):
+            for col in range(8):
+                if one_plane[row][col]!=0:
+                    game.pieces.add((row,col))
+        game.current_player = -game.current_player
+        fiveteenplane = self.encode(game)
+        return fiveteenplane
+
+
 
 def create():
-    return ThirteenPlaneEncoder()
+    return FiveteenPlaneEncoder()

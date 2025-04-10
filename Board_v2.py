@@ -4,7 +4,6 @@ from copy import copy
 class CheckersGame:
     def __init__(self):
         self.pieces = set()
-        self.kings = set()  # хранение координат дамок
         self.board = self._create_board()
         self.current_player = 1
         self.selected_piece = None
@@ -210,7 +209,7 @@ class CheckersGame:
         if capture_moves:
             return capture_moves
         else:
-            return self.get_regular_moves()
+            return [[x] for x in self.get_regular_moves()]
 
     def move_piece(self, move, capture_move=False):
         if capture_move:
@@ -284,27 +283,13 @@ class CheckersGame:
 
         return None
 
-    def next_turn(self, move=None):
+    def next_turn(self, move_series=None):
         """Выполняет ход и переключает игрока"""
-        if move:
-            # Проверяем тип move
-            if isinstance(move, list) and all(isinstance(item, tuple) for item in move):
-                # Если это список кортежей (последовательность взятий)
-                for single_move in move:
-                    if isinstance(single_move, tuple) and len(single_move) >= 6:
-                        self.move_piece(single_move, capture_move=(single_move[2] is not None))
-                    else:
-                        print(f"Некорректный формат хода: {single_move}")
-            elif isinstance(move, tuple) and len(move) >= 6:
-                # Если это один кортеж (одиночный ход)
-                self.move_piece(move, capture_move=(move[2] is not None))
-            else:
-                print(f"Некорректный формат хода: {move}")
-                return
-
-            # Переключаем игрока
-            self.current_player = -self.current_player
-            self.check_winner()
+        for single_move in move_series:
+            self.move_piece(single_move, capture_move=(single_move[2] is not None))
+        # Переключаем игрока
+        self.current_player = -self.current_player
+        self.check_winner()
 
     def reset_game(self):
         """Сбрасывает игру в начальное состояние"""
