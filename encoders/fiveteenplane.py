@@ -203,10 +203,10 @@ class FiveteenPlaneEncoder:
     #                 five_plane[plane][row][col] = ten_plane[plane][row][col]
     #     return five_plane
     #
-    # def show_board_from_matrix(self, ten_plane):
-    #     one_plane = self.ten_to_one_plane_matrix(ten_plane)
-    #     for row in one_plane:
-    #         print(" ".join(self.symbols_change(num) for num in row))
+    def show_board_from_matrix(self, ten_plane):
+        one_plane = self.to_one_plane_matrix(ten_plane)
+        for row in one_plane:
+            print(" ".join(self.symbols_change(num) for num in row))
 
     def score(self, matrix):
         score = 0

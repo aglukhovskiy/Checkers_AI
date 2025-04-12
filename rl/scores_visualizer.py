@@ -6,13 +6,13 @@ import encoders
 from Board_v2 import CheckersGame
 
 # encoder = encoders.get_encoder_by_name('oneplane_singlesided')
-encoder = encoders.get_encoder_by_name('tenplane_v2')
+encoder = encoders.get_encoder_by_name('fiveteenplane')
 
 # exp = load_experience(h5py.File('test_1000_games.hdf5'))
 
-with h5py.File('models_n_exp/test_model_small.hdf5', 'r') as agent_file:
+with h5py.File('models_n_exp/test_model_small_fiveteenplane_11_100_blank.hdf5', 'r') as agent_file:
     agent1 = load_policy_agent(agent_file)
-with h5py.File('models_n_exp/test_model_small_trained.hdf5', 'r') as agent_file:
+with h5py.File('models_n_exp/test_model_small_fiveteenplane_to_train_cf.hdf5', 'r') as agent_file:
     agent2 = load_policy_agent(agent_file)
 
 # agent2.train(load_experience(h5py.File('test_1000_games.hdf5')), lr=0.005)
@@ -240,6 +240,10 @@ encoder.show_board(board_w_minus_10)
 # trained_predict_w_minus_10 = agent2._model.predict(np.array([encoder.one_to_four_plane_matrix(board_w_minus_10.board)]), verbose=False)
 
 # ### Tenplane
+for_input = np.array([encoder.encode(equal_board)])
+print(for_input.shape)
+
+
 predict_equal = agent1._model.predict(np.array([encoder.encode(equal_board)]), verbose=False)
 predict_w_plus_2 = agent1._model.predict(np.array([encoder.encode(board_w_plus_2)]), verbose=False)
 predict_w_plus_6 = agent1._model.predict(np.array([encoder.encode(board_w_plus_6)]), verbose=False)
@@ -254,6 +258,7 @@ trained_predict_w_plus_10 = agent2._model.predict(np.array([encoder.encode(board
 trained_predict_w_minus_2 = agent2._model.predict(np.array([encoder.encode(board_w_minus_2)]), verbose=False)
 trained_predict_w_minus_6 = agent2._model.predict(np.array([encoder.encode(board_w_minus_6)]), verbose=False)
 trained_predict_w_minus_10 = agent2._model.predict(np.array([encoder.encode(board_w_minus_10)]), verbose=False)
+
 
 # ### Eightplane
 # predict_equal = agent1._model.predict(np.array([encoder.ten_to_eight_plane_matrix(encoder.encode(equal_board))]), verbose=False)
