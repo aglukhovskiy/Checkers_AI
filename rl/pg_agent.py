@@ -129,7 +129,6 @@ class PolicyAgent:
         h5file['encoder'].attrs['name'] = self._encoder.name()
         h5file.create_group('model')
         kerasutil_save_model_to_hdf5_group(self._model, h5file['model'])
-        print(self._encoder.name())
 
     def train(self, experience, lr=0.01, clipnorm=1.0, batch_size=512, epochs=1, loss='mse'):
         """Обучает модель на основе опыта"""
