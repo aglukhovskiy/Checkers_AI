@@ -22,6 +22,7 @@ from rl.q_agent import QAgent, load_q_agent
 from eval_pg_bot import eval
 import importlib
 import csv
+from encoders import get_encoder_by_name
 
 from keras.models import Model
 from keras.layers import Conv2D, Dense, Flatten, Input
@@ -207,14 +208,15 @@ def do_self_play(agent_filename, num_games, temperature, experience_filename):
     # Создаем коллекторы опыта
     collector1 = ExperienceCollector()
     collector2 = ExperienceCollector()
-
     # Играем заданное количество игр
+    global time_list
     color1 = 1  # Начинаем с белых
     start = timeit.default_timer()
     for i in range(num_games):
-        if i%10==0:
+        if i%10==0 and i>0:
             print(f'Симуляция игры {i + 1}/{num_games}...')
             print("time spent :", timeit.default_timer() - start)
+            time_list.append(timeit.default_timer() - start)
             start = timeit.default_timer()
 
         # Начинаем новый эпизод для коллекторов
@@ -374,7 +376,8 @@ if __name__ == "__main__":
     #     trained_agent.serialize(model_outf)
 
     model_name = 'small'
-    lr = 0.03
+    encoder_name = 'thirteenplane'
+    lr = 0.04
     batch_size = 512
     q=False
     loss='mse'
@@ -382,21 +385,24 @@ if __name__ == "__main__":
         q_str = 'q_'
     else:
         q_str = ''
+    time_list = []
     # pool_size = load_experience(h5py.File(
     #     'models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages_w_reinforce.hdf5')).states.shape[0]
-    # layers_module = importlib.import_module('networks.' + model_name)
-    #
+    layers_module = importlib.import_module('networks.' + model_name)
+
     # model=create_model()
     # # model=create_model_q_training()
-    # encoder = ThirteenPlaneEncoder()
+    # encoder = get_encoder_by_name(encoder_name)
     # new_agent = PolicyAgent(model, encoder)
-    # # new_agent = QAgent(model, encoder)
-    # with h5py.File('models_n_exp/test_model_{}.hdf5'.format(model_name), 'w') as model_outf:
+    # new_agent = QAgent(model, encoder)
+    # with h5py.File('models_n_exp/test_model_{}_{}.hdf5'.format(model_name, encoder_name), 'w') as model_outf:
+    #     new_agent.serialize(model_outf)
+    # with h5py.File('models_n_exp/test_model_{}_{}_to_train.hdf5'.format(model_name, encoder_name), 'w') as model_outf:
     #     new_agent.serialize(model_outf)
     #
     # trained_agent=train_agent(
-    #     agent_filename='models_n_exp/test_model_{}.hdf5'.format(model_name),
-    #     experience_filename='models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages_w_reinforce.hdf5',
+    #     agent_filename='models_n_exp/test_model_{}_{}_to_train.hdf5'.format(model_name, encoder_name),
+    #     experience_filename='models_n_exp/experience_checkers_reinforce_all_iters_thirteenplane.hdf5',
     #     # experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages_w_reinforce
     #     # experience_filename='models_n_exp/experience_checkers_reinforce_all_iters.hdf5',
     #     learning_rate=lr,
@@ -404,23 +410,23 @@ if __name__ == "__main__":
     #     epochs=1,
     #     loss=loss
     # )
-    # with h5py.File('models_n_exp/test_model_{}_{}_{}_{}trained.hdf5'.format(model_name,lr,batch_size,q_str), 'w') as model_outf:
+    # with h5py.File('models_n_exp/test_model_{}_{}_{}_{}_{}trained.hdf5'.format(model_name, encoder_name,lr,batch_size,q_str), 'w') as model_outf:
     #     trained_agent.serialize(model_outf)
+    reinforce(
+        agent_filename='models_n_exp/test_model_{}_{}_to_train.hdf5'.format(model_name, encoder_name),
+        out_experience_filename='models_n_exp/experience_checkers_reinforce_all_iters_{}_test.hdf5'.format(model_name, encoder_name),
+        prev_experience_filename='models_n_exp/experience_checkers_reinforce_all_iters_{}_test.hdf5'.format(model_name, encoder_name),
+        num_games=100,
+        num_iterations=10,
+        learning_rate=0.06,
+        batch_size=512,
+        epochs=1,
+        temperature=0.05
+        )
 
-    # reinforce(
-    #     agent_filename='models_n_exp/test_model_small_0.03_512_trained.hdf5',
-    #     out_experience_filename='models_n_exp/experience_checkers_reinforce_all_iters.hdf5',
-    #     prev_experience_filename='models_n_exp/experience_checkers_reinforce_all_iters.hdf5',
-    #     num_games=100,
-    #     num_iterations=10,
-    #     learning_rate=0.03,
-    #     batch_size=512,
-    #     epochs=1,
-    #     temperature=0.05
-    #     )
-
-    res = eval('models_n_exp/test_model_{}.hdf5'.format(model_name),'models_n_exp/test_model_{}_{}_{}_{}trained.hdf5'.format(model_name,lr,batch_size,q_str), 100, q=q)
-
+    print(time_list)
+    res = eval('models_n_exp/test_model_{}_{}.hdf5'.format(model_name,encoder_name),'models_n_exp/test_model_{}_{}_to_train.hdf5'.format(model_name, encoder_name), 100, q=q)
+    print(res)
     # with open('training.log', 'r') as f:
     #     file = csv.reader(f)
     #     for row in file:
