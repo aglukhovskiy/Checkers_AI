@@ -210,7 +210,7 @@ class CheckersGame:
         if capture_moves:
             return capture_moves
         else:
-            return self.get_regular_moves()
+            return [[x] for x in self.get_regular_moves()]
 
     def move_piece(self, move, capture_move=False):
         if capture_move:
@@ -305,6 +305,14 @@ class CheckersGame:
             # Переключаем игрока
             self.current_player = -self.current_player
             self.check_winner()
+
+    # def next_turn(self, move_series=None):
+    #     """Выполняет ход и переключает игрока"""
+    #     for single_move in move_series:
+    #         self.move_piece(single_move, capture_move=(single_move[2] is not None))
+    #     # Переключаем игрока
+    #     self.current_player = -self.current_player
+    #     self.check_winner()
 
     def reset_game(self):
         """Сбрасывает игру в начальное состояние"""

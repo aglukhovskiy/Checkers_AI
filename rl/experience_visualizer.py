@@ -2,7 +2,7 @@ from experience import load_experience
 import h5py
 import encoders
 
-exp = load_experience(h5py.File('models_n_exp/experience_checkers_reinforce_all_iters_small_fiveteenplane_test_2.hdf5'))
+exp = load_experience(h5py.File('models_n_exp/experience_checkers_reinforce_all_iters_thirteenplane.hdf5'))
 # experience_filename='models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages.hdf5',
 encoder = encoders.get_encoder_by_name('thirteenplane')
 
@@ -13,7 +13,7 @@ encoder = encoders.get_encoder_by_name('thirteenplane')
 # {0.0: 66273, -1.0: 19638, 1.0: 19597, 3.0: 1932, 2.0: 4131, -4.0: 1421, 6.0: 105, -5.0: 489, -2.0: 4378, 4.0: 1493, 5.0: 522, -3.0: 2137, -6.0: 114, -7.0: 27, 7.0: 20, 8.0: 9, -8.0: 8, 9.0: 4}
 
 print(exp.states.shape)
-print(exp.states[0])
+# print(exp.states[0])
 cntr = {}
 for i in range(exp.advantages.shape[0]):
     if exp.advantages[i] not in cntr:

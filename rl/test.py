@@ -7,10 +7,12 @@ import h5py
 import encoders
 import numpy as np
 
-exp = load_experience(h5py.File('models_n_exp/experience_checkers_reinforce_all_iters_small_fiveteenplane_test_cf.hdf5'))
-encoder = encoders.get_encoder_by_name('fiveteenplane')
+exp_15 = load_experience(h5py.File('models_n_exp/experience_checkers_reinforce_all_iters_small_fiveteenplane_test_cf.hdf5'))
+exp_13 = load_experience(h5py.File('models_n_exp/experience_checkers_reinforce_all_iters_thirteenplane.hdf5'))
+encoder_15 = encoders.get_encoder_by_name('fiveteenplane')
+encoder_13 = encoders.get_encoder_by_name('thirteenplane')
 
-with h5py.File('models_n_exp/test_model_small_fiveteenplane_to_train_cf.hdf5', 'r') as agent_file:
+with h5py.File('models_n_exp/test_model_custom_thirteenplane_trained.hdf5', 'r') as agent_file:
     agent = load_policy_agent(agent_file)
 
 
@@ -65,8 +67,24 @@ def predict_save(inp, model, filename=None):
     plt.clf()
     plt.close()
 
-inp = exp.action_results[10] #.reshape(1,15,8,8)
+inp = exp_13.action_results[10] #.reshape(1,15,8,8)
 print(inp.shape)
-encoder.show_board_from_matrix(inp)
+encoder_15.show_board_from_matrix(inp)
 
 predict_save(np.array([inp]), agent._model, 'test.png')
+
+# print(agent._model.input)
+
+layer_activations = [layer.output for layer in agent._model.layers]
+model_activations = models.Model(inputs=agent._model.input, outputs=layer_activations)
+activations = model_activations.predict(np.array([inp]))
+
+print(len(activations))
+print(activations[0].shape)
+print(activations[1].shape)
+print(activations[2].shape)
+print(activations[3].shape)
+print(activations[4].shape)
+
+# fig = plt.figure(figsize=(10, 10))
+# predict_save(np.array([inp]), agent._model, 'test.png')
