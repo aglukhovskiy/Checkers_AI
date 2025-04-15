@@ -33,7 +33,7 @@ class PolicyAgent:
         return np.expand_dims(np.transpose(board_tensor, (1, 2, 0)), axis=0)
         # return board_tensor.reshape(1, 10, 8, 8)
 
-    def select_move(self, game, game_num_for_record):
+    def select_move_list(self, game, game_num_for_record):
         """Выбирает ход на основе текущего состояния игры"""
         move_series_list = game.get_possible_moves()
         num_moves = len(move_series_list)
@@ -61,15 +61,15 @@ class PolicyAgent:
             # move_probs = [self._model.predict(np.array([board_tensor]), verbose=0)[0][0] for board_tensor in board_tensors]
             move_probs = self._model.predict(np.array(board_tensors), verbose=0)[:, 0]
 
-        if game.current_player==-1:
+        if game.current_player == -1:
             move_probs = np.array([-x for x in move_probs])
 
         # # Предотвращаем вероятности 0 или 1
         eps = 1e-9
         # move_probs = np.clip(move_probs, eps, 1 - eps)
         # # Нормализуем отрицательные скоры
-        if min(move_probs)<0:
-            move_probs = np.clip(move_probs+min(move_probs), eps, np.inf)
+        if min(move_probs) < 0:
+            move_probs = np.clip(move_probs + min(move_probs), eps, np.inf)
         else:
             move_probs = np.clip(move_probs, eps, np.inf)
 
@@ -98,7 +98,7 @@ class PolicyAgent:
                 return random.choice(move_series_list)
             return None
 
-    def select_move_gui(self, game, game_num_for_record):
+    def select_move(self, game, game_num_for_record):
         """Выбирает ход на основе текущего состояния игры"""
         moves = game.available_moves()[0]
         num_moves = len(moves)
@@ -142,7 +142,7 @@ class PolicyAgent:
                     next_pos = (next_move[4], next_move[5])
                 else:
                     break
-
+            simulated_game.current_player*=-1
             simulated_boards.append(simulated_game)
             board_tensor = self._encoder.encode(simulated_game)
             board_tensors.append(board_tensor)
@@ -156,7 +156,7 @@ class PolicyAgent:
             # move_probs = [self._model.predict(np.array([board_tensor]), verbose=0)[0][0] for board_tensor in board_tensors]
             move_probs = self._model.predict(np.array(board_tensors), verbose=0)[:, 0]
 
-        if game.current_player==-1:
+        if game.current_player == -1:
             move_probs = np.array([-x for x in move_probs])
 
         # Предотвращаем вероятности 0 или 1
@@ -197,8 +197,8 @@ class PolicyAgent:
 
     def train(self, experience, lr=0.01, clipnorm=1.0, batch_size=512, epochs=1, loss='mse'):
         """Обучает модель на основе опыта"""
-        opt = SGD(learning_rate=lr, clipnorm=clipnorm)
-        # opt = SGD(learning_rate=lr)
+        # opt = SGD(learning_rate=lr, clipnorm=clipnorm)
+        opt = SGD(learning_rate=lr)
         # self._model.compile(loss='mean_absolute_error', optimizer=opt)
         self._model.compile(loss=loss, optimizer=opt)
 

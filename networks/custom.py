@@ -4,10 +4,8 @@ from keras.layers.convolutional import Conv2D, ZeroPadding2D
 
 def layers(input_shape):
     return [
-        ZeroPadding2D((3, 3), input_shape=input_shape),
-        Conv2D(64, (7, 7), padding='valid'),
-        Activation('relu'),
+        Conv2D(32, (7, 7), data_format='channels_first', padding='same', activation='relu'),
+        Conv2D(16, (5, 5), data_format='channels_first', padding='same', activation='relu'),
         Flatten(),
-        Dense(128),
-        Activation('relu'),
+        Dense(32, activation='relu'),
     ]
