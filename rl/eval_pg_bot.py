@@ -34,7 +34,7 @@ def simulate_game(white_player, black_player, game_num_for_record):
         moves_cntr+=1
         # if moves_cntr%10==0:
         #     print(moves_cntr)
-        next_move = agents[game.current_player].select_move(game, game_num_for_record)
+        next_move = agents[game.current_player].select_move(game, game_num_for_record, moves_list=agents[game.current_player].moves_list, non_relative=agents[game.current_player].non_relative)
         moves.append(next_move)
         game.next_turn(next_move)
         # encoder.show_board(game)
@@ -56,6 +56,10 @@ def eval(agent1_filename, agent2_filename, num_games=50, q=False):
     wins = 0
     losses = 0
     color1 = 1
+    agent1.moves_list=False
+    agent2.moves_list=True
+    agent1.non_relative=True
+    agent2.non_relative=True
 
     for i in range(num_games):
         print('Simulating game %d/%d...' % (i + 1, num_games))
@@ -75,6 +79,9 @@ def eval(agent1_filename, agent2_filename, num_games=50, q=False):
 
     print('Agent 1 record: %d/%d' % (wins, wins + losses))
     return [agent1_filename, agent2_filename, wins, wins + losses]
+
+
+
 
 # all - 55/90
 # 35/50
