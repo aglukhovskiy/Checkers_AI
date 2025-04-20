@@ -88,3 +88,4 @@ print(activations[4].shape)
 
 # fig = plt.figure(figsize=(10, 10))
 # predict_save(np.array([inp]), agent._model, 'test.png')
+

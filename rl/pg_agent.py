@@ -98,56 +98,57 @@ class PolicyAgent:
                 return random.choice(move_series_list)
             return None
 
-    def select_move(self, game, game_num_for_record):
+    def select_move(self, game, game_num_for_record, moves_list=False, non_relative=True):
         """Выбирает ход на основе текущего состояния игры"""
+        if moves_list:
+            move_list = game.get_possible_moves()
         moves = game.available_moves()[0]
         num_moves = len(moves)
-
         if num_moves == 0:
             game.game_is_on = 0
             return None
 
-        # Проверяем, что все ходы имеют правильный формат
-        valid_moves = []
-        for move in moves:
-            if isinstance(move, tuple) and len(move) >= 6:
-                valid_moves.append(move)
-
-        if not valid_moves:
-            print("Нет допустимых ходов!")
-            return None
-
-        num_moves = len(valid_moves)
+        num_moves = len(moves)
         simulated_boards = []
         board_tensors = []
         x_list = []
 
-        for i in range(num_moves):
-            simulated_game = deepcopy(game)
-            move = valid_moves[i]
+        if moves_list:
+            for i in range(len(move_list)):
+                simulated_game = deepcopy(game)
+                move_series = move_list[i]
+                simulated_game.next_turn(move_series)
+                simulated_boards.append(simulated_game)
+                board_tensor = self._encoder.encode(simulated_game)
+                board_tensors.append(board_tensor)
 
-            # Выполняем текущий ход
-            is_capture = move[2] is not None
-            simulated_game.move_piece(move, capture_move=is_capture)
+        elif not moves_list:
+            for i in range(num_moves):
+                simulated_game = deepcopy(game)
+                move = moves[i]
 
-            # Проверяем, есть ли множественное взятие
-            next_pos = (move[4], move[5])
-            while is_capture:
-                next_captures = simulated_game.get_first_capture_moves(next_pos)
-                if next_captures:
-                    # Для симуляции просто выбираем первый возможный ход
-                    next_move = next_captures[0]
-                    is_capture = next_move[2] is not None
-                    simulated_game.move_piece(next_move, capture_move=is_capture)
-                    next_pos = (next_move[4], next_move[5])
-                else:
-                    break
-            simulated_game.current_player*=-1
-            simulated_boards.append(simulated_game)
-            board_tensor = self._encoder.encode(simulated_game)
-            board_tensors.append(board_tensor)
-            # x = self._prepare_input(board_tensor)
-            # x_list.append(x)
+                # Выполняем текущий ход
+                is_capture = move[2] is not None
+                simulated_game.move_piece(move, capture_move=is_capture)
+
+                # Проверяем, есть ли множественное взятие
+                next_pos = (move[4], move[5])
+                while is_capture:
+                    next_captures = simulated_game.get_first_capture_moves(next_pos)
+                    if next_captures:
+                        # Для симуляции просто выбираем первый возможный ход
+                        next_move = next_captures[0]
+                        is_capture = next_move[2] is not None
+                        simulated_game.move_piece(next_move, capture_move=is_capture)
+                        next_pos = (next_move[4], next_move[5])
+                    else:
+                        break
+                simulated_game.current_player*=-1
+                simulated_boards.append(simulated_game)
+                board_tensor = self._encoder.encode(simulated_game)
+                board_tensors.append(board_tensor)
+                # x = self._prepare_input(board_tensor)
+                # x_list.append(x)
 
         # Либо исследуем случайные ходы, либо следуем текущей политике
         if np.random.random() < self._temperature:
@@ -155,14 +156,25 @@ class PolicyAgent:
         else:
             # move_probs = [self._model.predict(np.array([board_tensor]), verbose=0)[0][0] for board_tensor in board_tensors]
             move_probs = self._model.predict(np.array(board_tensors), verbose=0)[:, 0]
-
-        if game.current_player == -1:
+        # print('move_probs - ', move_probs)
+        if game.current_player == -1 and non_relative:
             move_probs = np.array([-x for x in move_probs])
 
-        # Предотвращаем вероятности 0 или 1
+        # if moves_list:
+        #     # # Предотвращаем вероятности 0 или 1
+        #     eps = 1e-9
+        #     # move_probs = np.clip(move_probs, eps, 1 - eps)
+        #     # # Нормализуем отрицательные скоры
+        #     if min(move_probs) < 0:
+        #         move_probs = np.clip(move_probs + min(move_probs), eps, np.inf)
+        #     else:
+        #         move_probs = np.clip(move_probs, eps, np.inf)
+        # elif not moves_list:
+        #     # Предотвращаем вероятности 0 или 1
+        #     eps = 1e-5
+        #     move_probs = np.clip(move_probs, eps, 1 - eps)
         eps = 1e-5
         move_probs = np.clip(move_probs, eps, 1 - eps)
-
         # Нормализуем, чтобы получить распределение вероятностей
         move_probs = move_probs / np.sum(move_probs)
 
@@ -170,8 +182,8 @@ class PolicyAgent:
         candidates = np.arange(num_moves)
         try:
             ranked_moves = np.random.choice(candidates, num_moves, replace=False, p=move_probs)
-            chosen_move = valid_moves[ranked_moves[0]]
-
+            chosen_move = moves[ranked_moves[0]]
+            # self._encoder.show_board_from_matrix(board_tensors[ranked_moves[0]])
             # Записываем решение, если есть коллектор
             if self._collector is not None:
                 self._collector.record_decision(
@@ -184,8 +196,8 @@ class PolicyAgent:
             return chosen_move
         except:
             # В случае ошибки выбираем случайный ход
-            if valid_moves:
-                return random.choice(valid_moves)
+            if moves:
+                return random.choice(moves)
             return None
 
     def serialize(self, h5file):
@@ -197,8 +209,8 @@ class PolicyAgent:
 
     def train(self, experience, lr=0.01, clipnorm=1.0, batch_size=512, epochs=1, loss='mse'):
         """Обучает модель на основе опыта"""
-        # opt = SGD(learning_rate=lr, clipnorm=clipnorm)
-        opt = SGD(learning_rate=lr)
+        opt = SGD(learning_rate=lr, clipnorm=clipnorm)
+        # opt = SGD(learning_rate=lr)
         # self._model.compile(loss='mean_absolute_error', optimizer=opt)
         self._model.compile(loss=loss, optimizer=opt)
 
@@ -208,6 +220,8 @@ class PolicyAgent:
         for i in range(n):
             advantage = experience.advantages[i]
             y[i] = advantage
+            # reward = experience.rewards[i]
+            # y[i] = reward
 
         # Данные уже в формате (None, 10, 8, 8)
         x = experience.action_results
