@@ -299,6 +299,14 @@ class CheckersGame:
     #     self.current_player = -self.current_player
     #     self.check_winner()
 
+    # def next_turn(self, move_series=None):
+    #     """Выполняет ход и переключает игрока"""
+    #     for single_move in move_series:
+    #         self.move_piece(single_move, capture_move=(single_move[2] is not None))
+    #     # Переключаем игрока
+    #     self.current_player = -self.current_player
+    #     self.check_winner()
+
     def reset_game(self):
         """Сбрасывает игру в начальное состояние"""
         self.pieces = set()
