@@ -1,0 +1,607 @@
+import numpy as np
+import random
+import time
+import os
+import h5py
+from collections import namedtuple
+from tensorflow import keras
+from keras.models import Sequential
+from keras.layers import Dense, Activation, Flatten, Conv2D, ZeroPadding2D
+from keras.optimizers import SGD
+from encoders import get_encoder_by_name
+from rl.experience import ExperienceCollector, combine_experience, load_experience
+from Board_v2 import CheckersGame
+import pygame
+import timeit
+from rl.kerasutil import kerasutil_save_model_to_hdf5_group, kerasutil_load_model_from_hdf5_group
+from rl.pg_agent import PolicyAgent, load_policy_agent
+from rl.q_agent import QAgent, load_q_agent
+# from networks.fullyconnected import layers
+# from networks.small import layers
+# from networks.medium import layers
+from eval_pg_bot import eval
+import importlib
+import csv
+
+from keras.models import Model
+from keras.layers import Conv2D, Dense, Flatten, Input
+from keras.layers import ZeroPadding2D, concatenate
+from rl.kerasutil import kerasutil_save_model_to_hdf5_group, kerasutil_load_model_from_hdf5_group
+import random
+# from encoders.tenplane_v2 import TenPlaneEncoder
+import encoders
+from copy import deepcopy
+import numpy as np
+from keras.optimizers import SGD
+from keras.callbacks import CSVLogger
+
+def policy_gradient_loss(y_true, y_pred):
+    """Функция потерь для обучения с помощью градиента политики"""
+    y_pred = keras.backend.clip(y_pred, keras.backend.epsilon(), 1 - keras.backend.epsilon())
+    loss = -1 * y_true * keras.backend.log(y_pred)
+    return keras.backend.mean(keras.backend.sum(loss, axis=1))
+
+class PolicyAgent:
+    """Агент, использующий глубокую нейронную сеть политики для выбора ходов"""
+
+    def __init__(self, model, encoder):
+        self._model = model
+        self._encoder = encoder
+        self._collector = None
+        self._temperature = 0.0
+
+    def set_collector(self, collector):
+        self._collector = collector
+
+    def set_temperature(self, temperature):
+        self._temperature = temperature
+
+    def _prepare_input(self, board_tensor):
+        # Данные уже в формате (10, 8, 8), просто добавляем размерность батча
+        return np.expand_dims(np.transpose(board_tensor, (1, 2, 0)), axis=0)
+        # return board_tensor.reshape(1, 10, 8, 8)
+
+    def select_move(self, game, game_num_for_record):
+        """Выбирает ход на основе текущего состояния игры"""
+        move_series_list = game.get_possible_moves()
+        num_moves = len(move_series_list)
+
+        if num_moves == 0:
+            game.game_is_on = 0
+            return None
+
+        simulated_boards = []
+        board_tensors = []
+
+        for i in range(num_moves):
+            simulated_game = deepcopy(game)
+            move_series = move_series_list[i]
+            simulated_game.next_turn(move_series=move_series)
+
+            simulated_boards.append(simulated_game)
+            board_tensor = self._encoder.encode(simulated_game)
+            board_tensors.append(board_tensor)
+
+        # Либо исследуем случайные ходы, либо следуем текущей политике
+        if np.random.random() < self._temperature:
+            move_probs = np.ones(num_moves) / num_moves
+        else:
+            # move_probs = [self._model.predict(np.array([board_tensor]), verbose=0)[0][0] for board_tensor in board_tensors]
+            move_probs = self._model.predict(np.array(board_tensors), verbose=0)[:, 0]
+
+        if game.current_player==-1:
+            move_probs = np.array([-x for x in move_probs])
+
+        # # Предотвращаем вероятности 0 или 1
+        eps = 1e-7
+        # move_probs = np.clip(move_probs, eps, 1 - eps)
+        # # Нормализуем отрицательные скоры
+        if min(move_probs)<0:
+            move_probs = np.clip(move_probs+min(move_probs), eps, np.inf)
+        else:
+            move_probs = np.clip(move_probs, eps, np.inf)
+
+        # Нормализуем, чтобы получить распределение вероятностей
+        move_probs = move_probs / np.sum(move_probs)
+
+        # Выбираем ход в соответствии с вероятностями
+        candidates = np.arange(num_moves)
+        try:
+            ranked_moves = np.random.choice(candidates, num_moves, replace=False, p=move_probs)
+            chosen_move = move_series_list[ranked_moves[0]]
+
+            # Записываем решение, если есть коллектор
+            if self._collector is not None:
+                self._collector.record_decision(
+                    state=self._encoder.encode(game),
+                    action_result=board_tensors[ranked_moves[0]],
+                    white_turns=game.current_player,
+                    game_nums=game_num_for_record
+                )
+
+            return chosen_move
+        except:
+            # В случае ошибки выбираем случайный ход
+            if move_series_list:
+                return random.choice(move_series_list)
+            return None
+
+    def select_move_gui(self, game, game_num_for_record):
+        """Выбирает ход на основе текущего состояния игры"""
+        moves = game.available_moves()[0]
+        num_moves = len(moves)
+
+        if num_moves == 0:
+            game.game_is_on = 0
+            return None
+
+        # Проверяем, что все ходы имеют правильный формат
+        valid_moves = []
+        for move in moves:
+            if isinstance(move, tuple) and len(move) >= 6:
+                valid_moves.append(move)
+
+        if not valid_moves:
+            print("Нет допустимых ходов!")
+            return None
+
+        num_moves = len(valid_moves)
+        simulated_boards = []
+        board_tensors = []
+        x_list = []
+
+        for i in range(num_moves):
+            simulated_game = deepcopy(game)
+            move = valid_moves[i]
+
+            # Выполняем текущий ход
+            is_capture = move[2] is not None
+            simulated_game.move_piece(move, capture_move=is_capture)
+
+            # Проверяем, есть ли множественное взятие
+            next_pos = (move[4], move[5])
+            while is_capture:
+                next_captures = simulated_game.get_first_capture_moves(next_pos)
+                if next_captures:
+                    # Для симуляции просто выбираем первый возможный ход
+                    next_move = next_captures[0]
+                    is_capture = next_move[2] is not None
+                    simulated_game.move_piece(next_move, capture_move=is_capture)
+                    next_pos = (next_move[4], next_move[5])
+                else:
+                    break
+
+            simulated_boards.append(simulated_game)
+            board_tensor = self._encoder.encode(simulated_game)
+            board_tensors.append(board_tensor)
+            # x = self._prepare_input(board_tensor)
+            # x_list.append(x)
+
+        # Либо исследуем случайные ходы, либо следуем текущей политике
+        if np.random.random() < self._temperature:
+            move_probs = np.ones(num_moves) / num_moves
+        else:
+            # move_probs = [self._model.predict(np.array([board_tensor]), verbose=0)[0][0] for board_tensor in board_tensors]
+            move_probs = self._model.predict(np.array(board_tensors), verbose=0)[:, 0]
+
+        if game.current_player==-1:
+            move_probs = np.array([-x for x in move_probs])
+
+        # Предотвращаем вероятности 0 или 1
+        eps = 1e-5
+        move_probs = np.clip(move_probs, eps, 1 - eps)
+
+        # Нормализуем, чтобы получить распределение вероятностей
+        move_probs = move_probs / np.sum(move_probs)
+
+        # Выбираем ход в соответствии с вероятностями
+        candidates = np.arange(num_moves)
+        try:
+            ranked_moves = np.random.choice(candidates, num_moves, replace=False, p=move_probs)
+            chosen_move = valid_moves[ranked_moves[0]]
+
+            # Записываем решение, если есть коллектор
+            if self._collector is not None:
+                self._collector.record_decision(
+                    state=self._encoder.encode(game),
+                    action_result=board_tensors[ranked_moves[0]],
+                    white_turns=game.current_player,
+                    game_nums=game_num_for_record
+                )
+
+            return chosen_move
+        except:
+            # В случае ошибки выбираем случайный ход
+            if valid_moves:
+                return random.choice(valid_moves)
+            return None
+
+    def serialize(self, h5file):
+        """Сохраняет агента в HDF5 файл"""
+        h5file.create_group('encoder')
+        h5file['encoder'].attrs['name'] = self._encoder.name()
+        h5file.create_group('model')
+        kerasutil_save_model_to_hdf5_group(self._model, h5file['model'])
+        print(self._encoder.name())
+
+    def train(self, experience, lr=0.01, clipnorm=1.0, batch_size=512, epochs=1, loss='mse'):
+        """Обучает модель на основе опыта"""
+        opt = SGD(learning_rate=lr, clipnorm=clipnorm)
+        # opt = SGD(learning_rate=lr)
+        # self._model.compile(loss='mean_absolute_error', optimizer=opt)
+        self._model.compile(loss=loss, optimizer=opt)
+
+        n = experience.action_results.shape[0]
+        # Translate the actions/rewards.
+        y = np.zeros(n)
+        for i in range(n):
+            advantage = experience.advantages[i]
+            y[i] = advantage
+
+        # Данные уже в формате (None, 10, 8, 8)
+        x = experience.action_results
+        csv_logger = CSVLogger('training.log', append=True)
+
+        self._model.fit(
+            x=x, batch_size=batch_size, y=y, epochs=epochs, callbacks=csv_logger)
+
+
+def load_policy_agent(h5file):
+    """Загружает агента из HDF5 файла"""
+    model = kerasutil_load_model_from_hdf5_group(
+        h5file['model'],
+        custom_objects={'policy_gradient_loss': policy_gradient_loss})
+    encoder_name = h5file['encoder'].attrs['name']
+    if not isinstance(encoder_name, str):
+        encoder_name = encoder_name.decode('ascii')
+    encoder = encoders.get_encoder_by_name(
+        encoder_name)
+    return PolicyAgent(model, encoder)
+
+
+class GameRecord(namedtuple('GameRecord', 'moves winner margin')):
+    """Запись о сыгранной игре"""
+    pass
+
+
+def simulate_game(white_player, black_player, game_num_for_record):
+    """Симулирует игру между двумя агентами"""
+    move_series_list = []
+    game = CheckersGame()
+
+    agents = {
+        1: white_player,  # белые
+        -1: black_player,  # черные
+    }
+
+    moves_counter = 0
+    max_moves = 80  # Ограничиваем количество ходов для предотвращения бесконечных игр
+
+    while game.game_is_on == 1 and moves_counter < max_moves:
+        moves_counter += 1
+        current_agent = agents[game.current_player]
+
+        # Получаем ход от агента
+        next_move_series = current_agent.select_move(game, game_num_for_record)
+        if next_move_series is None:
+            break
+
+        # Добавляем ход в историю
+        move_series_list.append(next_move_series)
+
+        game.next_turn(next_move_series)
+
+        # Проверяем, закончилась ли игра
+        if game.game_is_on == 0:
+            break
+
+    # white_player._encoder.show_board(game)
+    # print(game.game_is_on, game.winner)
+    # print('------------------------------')
+    # Если достигнут лимит ходов, определяем победителя по количеству шашек
+    if moves_counter >= max_moves and game.game_is_on == 1:
+        game.game_is_on = 0
+
+    game_result, game_margin = game.compute_results()
+
+    return GameRecord(
+        moves=move_series_list,
+        winner=game_result,
+        margin=game_margin,
+    )
+
+# def layers(input_shape):
+#     return [
+#         ZeroPadding2D(padding=3, input_shape=input_shape),  # <1>
+#         Conv2D(48, (7, 7)),
+#         Activation('relu'),
+#
+#         ZeroPadding2D(padding=2),  # <2>
+#         Conv2D(32, (5, 5)),
+#         Activation('relu'),
+#
+#         ZeroPadding2D(padding=2),
+#         Conv2D(32, (5, 5)),
+#         Activation('relu'),
+#
+#         ZeroPadding2D(padding=2),
+#         Conv2D(32, (5, 5)),
+#
+#         # ZeroPadding2D(padding=3, input_shape=input_shape, data_format='channels_first'),  # <1>
+#         # Conv2D(48, (7, 7), data_format='channels_first'),
+#         # Activation('relu'),
+#         #
+#         # ZeroPadding2D(padding=2, data_format='channels_first'),  # <2>
+#         # Conv2D(32, (5, 5), data_format='channels_first'),
+#         # Activation('relu'),
+#         #
+#         # ZeroPadding2D(padding=2, data_format='channels_first'),
+#         # Conv2D(32, (5, 5), data_format='channels_first'),
+#         # Activation('relu'),
+#         #
+#         # ZeroPadding2D(padding=2, data_format='channels_first'),
+#         # Conv2D(32, (5, 5), data_format='channels_first'),
+#         # Activation('relu'),
+#
+#         Flatten(),
+#         Dense(512),
+#         Activation('relu'),
+#     ]
+
+def create_model(input_shape=(15, 8, 8)):  # Изменяем порядок размерностей
+    """Создаёт модель нейронной сети для агента"""
+    model = Sequential()
+    for layer in layers_module.layers(input_shape):
+        model.add(layer)
+    model.add(Dense(1, activation='linear'))  # Выход - скор
+    return model
+
+def create_model_q_training(input_shape=(15, 8, 8)):  # Изменяем порядок размерностей
+    """Создаёт модель нейронной сети для агента"""
+    board_input = Input(shape=input_shape, name='board_input')
+    action_input = Input(shape=input_shape, name='action_input')
+
+    conv1a=ZeroPadding2D(padding=3)(board_input)
+    conv1b=Conv2D(48, (7, 7), activation='relu')(conv1a)
+    conv2a = ZeroPadding2D((2, 2))(conv1b)
+    conv2b = Conv2D(32, (5, 5), activation='relu')(conv2a)
+    conv3a = ZeroPadding2D((2, 2))(conv2b)
+    conv3b = Conv2D(32, (5, 5), activation='relu')(conv3a)
+    conv4a = ZeroPadding2D((2, 2))(conv3b)
+    conv4b = Conv2D(32, (5, 5), activation='relu')(conv4a)
+    flat = Flatten()(conv4b)
+    processed_board = Dense(512, activation='relu')(flat)
+
+    action_conv1a=ZeroPadding2D(padding=3)(action_input)
+    action_conv1b=Conv2D(48, (7, 7), activation='relu')(action_conv1a)
+    action_conv2a = ZeroPadding2D((2, 2))(action_conv1b)
+    action_conv2b = Conv2D(32, (5, 5), activation='relu')(action_conv2a)
+    action_conv3a = ZeroPadding2D((2, 2))(action_conv2b)
+    action_conv3b = Conv2D(32, (5, 5), activation='relu')(action_conv3a)
+    action_conv4a = ZeroPadding2D((2, 2))(action_conv3b)
+    action_conv4b = Conv2D(32, (5, 5), activation='relu')(action_conv4a)
+    action_flat = Flatten()(action_conv4b)
+    action_processed_board = Dense(512, activation='relu')(action_flat)
+    board_and_action = concatenate([action_processed_board, processed_board])
+    hidden_layer = Dense(256, activation='relu')(board_and_action)
+    value_output = Dense(1, activation='linear')(hidden_layer)
+    model = Model(inputs=[board_input, action_input], outputs=value_output)
+    return model
+
+def do_self_play(agent_filename, num_games, temperature, experience_filename):
+    """Выполняет игры агента против самого себя и сохраняет полученный опыт"""
+
+    random.seed(int(time.time()) + os.getpid())
+    np.random.seed(int(time.time()) + os.getpid())
+
+    # Загружаем агента из файла или создаем нового, если файл не существует
+    with h5py.File(agent_filename, 'r') as agent_file:
+        agent1 = load_policy_agent(agent_file)
+        agent2 = load_policy_agent(agent_file)
+
+    # except (FileNotFoundError, IOError):
+    #     # Если файл не найден, создаем нового агента
+    #     encoder = TenPlaneEncoder()
+    #     model = create_model()
+    #     agent1 = PolicyAgent(model, encoder)
+    #     agent2 = PolicyAgent(model, encoder)
+    #     # Сохраняем нового агента
+    #     with h5py.File(agent_filename, 'w') as agent_file:
+    #         agent1.serialize(agent_file)
+
+    # Устанавливаем температуру для исследования
+    agent1.set_temperature(temperature)
+    agent2.set_temperature(temperature)
+
+    # Создаем коллекторы опыта
+    collector1 = ExperienceCollector()
+    collector2 = ExperienceCollector()
+
+    # Играем заданное количество игр
+    color1 = 1  # Начинаем с белых
+    start = timeit.default_timer()
+    for i in range(num_games):
+        if i%10==0:
+            print(f'Симуляция игры {i + 1}/{num_games}...')
+            print("time spent :", timeit.default_timer() - start)
+            start = timeit.default_timer()
+
+        # Начинаем новый эпизод для коллекторов
+        collector1.begin_episode()
+        agent1.set_collector(collector1)
+        collector2.begin_episode()
+        agent2.set_collector(collector2)
+
+        # Распределяем цвета
+        if color1 == 1:
+            white_player, black_player = agent1, agent2
+        else:
+            black_player, white_player = agent1, agent2
+
+        # Симулируем игру
+        game_record = simulate_game(white_player, black_player, game_num_for_record=i)
+
+        collector1_advantage = []
+        collector2_advantage = []
+
+        #Вычисляем advantage
+        for i in range(len(collector1._current_episode_action_results)-1):
+            collector1_advantage.append(agent1._encoder.score(collector1._current_episode_action_results[i+1])-agent1._encoder.score(collector1._current_episode_action_results[i]))
+        collector1_advantage.append(0)
+
+
+        for i in range(len(collector2._current_episode_action_results)-1):
+            collector2_advantage.append(agent2._encoder.score(collector2._current_episode_action_results[i+1])-agent2._encoder.score(collector2._current_episode_action_results[i]))
+        collector2_advantage.append(0)
+
+        # Определяем вознаграждения на основе результата игры
+        if game_record.winner == color1:  # Победа белых
+            collector1.complete_episode(reward=1, advantages=collector1_advantage)
+            collector2.complete_episode(reward=-1, advantages=collector2_advantage)
+        elif game_record.winner == -color1:  # Победа черных
+            collector2.complete_episode(reward=1, advantages=collector2_advantage)
+            collector1.complete_episode(reward=-1, advantages=collector1_advantage)
+        else:  # Ничья
+            collector1.complete_episode(reward=0, advantages=collector1_advantage)
+            collector2.complete_episode(reward=0, advantages=collector2_advantage)
+
+        # Меняем цвета для следующей игры
+        color1 = 0 - color1
+
+        # Периодически сохраняем опыт
+        # if i % 100 == 0 and i > 0:
+        #     experience = combine_experience([collector1, collector2])
+            # save_filename = f'{experience_filename}_{num_games}.hdf5'
+            # print(f'Сохранение буфера опыта в {save_filename}')
+            # # with h5py.File(save_filename, 'w') as experience_file:
+            # #     experience.serialize(experience_file)
+
+    # Сохраняем окончательный опыт
+    experience = combine_experience([collector1, collector2])
+    # save_filename = f'{experience_filename}_{num_games}.hdf5'
+    save_filename = f'{experience_filename}.hdf5'
+    print(f'Сохранение буфера опыта в {save_filename}')
+    with h5py.File(save_filename, 'w') as experience_file:
+        experience.serialize(experience_file)
+
+
+def train_agent(agent_filename, experience_filename, learning_rate=0.01, batch_size=512, epochs=1, loss='mse'):
+    """Обучает агента на основе опыта"""
+
+    # Загружаем агента
+    with h5py.File(agent_filename, 'r') as agent_file:
+        agent = load_policy_agent(agent_file)
+
+    # Загружаем опыт
+    with h5py.File(experience_filename, 'r') as experience_file:
+        experience = load_experience(experience_file)
+
+    # Обучаем агента
+    agent.train(experience, lr=learning_rate, batch_size=batch_size, epochs=epochs, loss=loss)
+
+    # # Сохраняем обновленного агента
+    # with h5py.File(agent_filename, 'w') as agent_file:
+    #     agent.serialize(agent_file)
+
+    return agent
+
+def train_q_agent(agent_filename, experience_filename, learning_rate=0.01, batch_size=512, epochs=1, loss='mse'):
+    """Обучает агента на основе опыта"""
+
+    # Загружаем агента
+    with h5py.File(agent_filename, 'r') as agent_file:
+        agent = load_q_agent(agent_file)
+
+    # Загружаем опыт
+    with h5py.File(experience_filename, 'r') as experience_file:
+        experience = load_experience(experience_file)
+
+    # Обучаем агента
+    agent.train(experience, lr=learning_rate, batch_size=batch_size, epochs=epochs, loss=loss)
+
+    # # Сохраняем обновленного агента
+    # with h5py.File(agent_filename, 'w') as agent_file:
+    #     agent.serialize(agent_file)
+
+    return agent
+
+def reinforce(agent_filename, out_experience_filename, num_games, num_iterations, prev_experience_filename=None, learning_rate=0.01, batch_size=512, epochs=1, temperature=0.05):
+
+    for j in range(num_iterations):
+        print('starting {} iteration'.format(j+1))
+        do_self_play(agent_filename=agent_filename, num_games=num_games, temperature=temperature,
+                         experience_filename='models_n_exp/experience_checkers_reinforce_{}_iter'.format(j))
+        trained_agent = train_agent(
+            agent_filename=agent_filename,
+            experience_filename='models_n_exp/experience_checkers_reinforce_{}_iter.hdf5'.format(j),
+            learning_rate=learning_rate,
+            batch_size=batch_size,
+            epochs=epochs
+        )
+        with h5py.File(agent_filename, 'w') as model_outf:
+            trained_agent.serialize(model_outf)
+
+    exp_list = []
+
+    if prev_experience_filename:
+        exp_list.append(load_experience(h5py.File(prev_experience_filename)))
+
+    for k in range(num_iterations):
+        exp_list.append(load_experience(h5py.File('models_n_exp/experience_checkers_reinforce_{}_iter.hdf5'.format(k))))
+
+    total_exp = combine_experience(exp_list)
+
+    with h5py.File(out_experience_filename, 'w') as experience_outf:
+        total_exp.serialize(experience_outf)
+
+    for z in range(num_iterations):
+        os.remove('models_n_exp/experience_checkers_reinforce_{}_iter.hdf5'.format(z))
+
+
+# Пример использования
+if __name__ == "__main__":
+    pass
+    # Укажите, какую функцию вы хотите выполнить
+
+    # 1. Для самоигры и генерации опыта
+    # do_self_play(
+    #     agent_filename='models_n_exp/test_model.hdf5',
+    #     num_games=250,
+    #     temperature=0.01,
+    #     experience_filename='experience_checkers'
+    # )
+
+    # 2. Для обучения агента на основе собранного опыта
+    # trained_agent=train_agent(
+    #     agent_filename='models_n_exp/test_model_small.hdf5',
+    #     experience_filename='models_n_exp/experience_checkers_all_iters_one_plane.hdf5',
+    #     learning_rate=0.01,
+    #     batch_size=128,
+    #     epochs=1
+    # )
+    # with h5py.File('models_n_exp/test_model_small_trained.hdf5', 'w') as model_outf:
+    #     trained_agent.serialize(model_outf)
+
+    model_name = 'small'
+    lr = 0.03
+    batch_size = 512
+    q=False
+    loss='mse'
+    if q:
+        q_str = 'q_'
+    else:
+        q_str = ''
+    encoder_name = 'fiveteenplane'
+    layers_module = importlib.import_module('networks.' + model_name)
+
+    reinforce(
+        agent_filename='models_n_exp/test_model_{}_{}_{}_{}_{}trained.hdf5'.format(model_name,encoder_name,lr,batch_size,q_str),
+        out_experience_filename='models_n_exp/experience_checkers_reinforce_all_iters_fiveteenplane.hdf5',
+        prev_experience_filename='models_n_exp/experience_checkers_reinforce_all_iters_fiveteenplane.hdf5',
+        num_games=100,
+        num_iterations=10,
+        learning_rate=0.04,
+        batch_size=512,
+        epochs=1,
+        temperature=0.05
+        )

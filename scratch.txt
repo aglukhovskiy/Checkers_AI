@@ -1,0 +1,78 @@
+import numpy as np
+import h5py
+import os
+from math import ceil
+
+def split_experience_file(input_file_path, output_dir=None, max_examples_per_file=1000, prefix='experience_part_'):
+    """
+    Разделяет файл с опытом на несколько файлов меньшего размера.
+
+    Args:
+        input_file_path (str): Путь к входному HDF5 файлу с опытом
+        output_dir (str): Директория для сохранения разделенных файлов (по умолчанию та же директория)
+        max_examples_per_file (int): Максимальное количество примеров в каждом выходном файле
+        prefix (str): Префикс для имен выходных файлов
+
+    Returns:
+        list: Список путей к созданным файлам
+    """
+    # Если выходная директория не указана, используем директорию входного файла
+    if output_dir is None:
+        output_dir = os.path.dirname(input_file_path)
+        if output_dir == '':
+            output_dir = '.'
+
+    # Создаем выходную директорию, если она не существует
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Загружаем исходный файл
+    with h5py.File(input_file_path, 'r') as h5file:
+        # Загружаем все данные из файла
+        states = np.array(h5file['experience']['states'])
+        action_results = np.array(h5file['experience']['action_results'])
+        rewards = np.array(h5file['experience']['rewards'])
+        advantages = np.array(h5file['experience']['advantages'])
+        white_turns = np.array(h5file['experience']['white_turns'])
+        game_nums = np.array(h5file['experience']['game_nums'])
+
+    # Общее количество примеров
+    total_examples = len(states)
+
+    # Рассчитываем необходимое количество файлов
+    num_files = ceil(total_examples / max_examples_per_file)
+
+    created_files = []
+
+    # Разделяем данные и сохраняем их в отдельные файлы
+    for i in range(num_files):
+        start_idx = i * max_examples_per_file
+        end_idx = min((i + 1) * max_examples_per_file, total_examples)
+
+        # Формируем имя выходного файла
+        output_file_path = os.path.join(output_dir, f"{prefix}{i+1}.h5")
+        created_files.append(output_file_path)
+
+        # Создаем новый файл и записываем в него данные
+        with h5py.File(output_file_path, 'w') as h5file:
+            h5file.create_group('experience')
+            h5file['experience'].create_dataset('states', data=states[start_idx:end_idx])
+            h5file['experience'].create_dataset('action_results', data=action_results[start_idx:end_idx])
+            h5file['experience'].create_dataset('rewards', data=rewards[start_idx:end_idx])
+            h5file['experience'].create_dataset('advantages', data=advantages[start_idx:end_idx])
+            h5file['experience'].create_dataset('white_turns', data=white_turns[start_idx:end_idx])
+            h5file['experience'].create_dataset('game_nums', data=game_nums[start_idx:end_idx])
+
+        print(f"Создан файл {output_file_path} с {end_idx - start_idx} примерами")
+
+    return created_files
+Пример использования:
+
+python
+# Разделить файл на части, максимум по 1000 примеров в каждой
+split_experience_file('path/to/experience.h5', max_examples_per_file=1000)
+
+# Или указать другую директорию для сохранения и другой префикс
+split_experience_file('path/to/experience.h5',
+                     output_dir='path/to/output_dir',
+                     max_examples_per_file=500,
+                     prefix='exp_chunk_')
