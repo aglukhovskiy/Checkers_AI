@@ -372,11 +372,11 @@ if __name__ == "__main__":
     #     0]
 
     train_files_list = [
-        'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_part_1.hdf5',
-        'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_part_2.hdf5',
-        'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_part_3.hdf5',
-        'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_part_4.hdf5',
-        'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_part_5.hdf5',
+        # 'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_part_1.hdf5',
+        # 'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_part_2.hdf5',
+        # 'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_part_3.hdf5',
+        # 'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_part_4.hdf5',
+        # 'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_part_5.hdf5',
         'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_2_part_1.hdf5',
         'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_2_part_2.hdf5',
         'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_2_part_3.hdf5',
