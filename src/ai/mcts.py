@@ -1,9 +1,9 @@
 import math
 import random
 from copy import deepcopy
-import Checkers
-import Board
-from Checkers import Bot
+from src.core import checkers
+from src.core import board
+from src.ai.bot import Bot
 
 class Player():
     black = 0
@@ -176,8 +176,8 @@ class MCTSAgent():
         return win_pct
 
 if __name__ == '__main__':
-    f = Board.Field()
-    match = Checkers.Checkers(opp='opp', board=f, control='command')
+    f = board.Field()
+    match = checkers.Checkers(opp='opp', board=f, control='command')
     match.next_turn('e3f4')
     agent = MCTSAgent(num_rounds=10, temperature=3)
     agent.select_move(match)

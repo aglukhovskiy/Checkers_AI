@@ -2,6 +2,6 @@
 import importlib
 
 def get_encoder_by_name(name):  # <1>
-    module = importlib.import_module('encoders.' + name)
+    module = importlib.import_module('src.ai.encoders.' + name)
     constructor = getattr(module, 'create')  # <3>
     return constructor()

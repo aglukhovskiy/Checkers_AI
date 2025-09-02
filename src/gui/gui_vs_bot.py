@@ -1,8 +1,8 @@
 
 import pygame
 import h5py
-from rl.pg_agent import load_policy_agent
-from Board_v2 import CheckersGame
+from ..rl.agents.pg_agent import load_policy_agent
+from ..core.board_v2 import CheckersGame
 import numpy as np
 
 def play_against_bot(agent_filename):

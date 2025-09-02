@@ -1,7 +1,7 @@
-from rl.kerasutil import kerasutil_save_model_to_hdf5_group, kerasutil_load_model_from_hdf5_group
+from ..kerasutil import kerasutil_save_model_to_hdf5_group, kerasutil_load_model_from_hdf5_group
 import random
-# from encoders.tenplane_v2 import TenPlaneEncoder
-import encoders
+# from src.ai.encoders.tenplane_v2 import TenPlaneEncoder
+from src.ai import encoders
 from copy import deepcopy
 import numpy as np
 from keras.optimizers import SGD

@@ -3,7 +3,7 @@ import sys
 import numpy as np
 from copy import copy
 import time
-from Board_v2 import CheckersGame
+from ..core.board_v2 import CheckersGame
 
 
 # Константы для интерфейса
@@ -182,7 +182,7 @@ def draw_info_panel():
         screen.blit(instr_surface, (BOARD_SIZE + 20, HEIGHT - 110 + i * 25))
 
     # Если игра окончена, показываем победителя
-    if game.winner != 0:
+    if game.winner is not None and game.winner != 0:
         winner_text = "Победили БЕЛЫЕ!" if game.winner > 0 else "Победили ЧЕРНЫЕ!"
         winner_surface = title_font.render(winner_text, True, (255, 0, 0))
 

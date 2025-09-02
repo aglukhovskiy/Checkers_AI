@@ -1,7 +1,11 @@
-import Board
-from encoders.oneplane import OnePlaneEncoder
+from src.core.board import Field
+from .encoders.oneplane import OnePlaneEncoder
 import numpy as np
-from keras.models import load_model
+try:
+    from keras.models import load_model
+    KERAS_AVAILABLE = True
+except ImportError:
+    KERAS_AVAILABLE = False
 
 encoder = OnePlaneEncoder()
 
@@ -68,7 +72,7 @@ class Bot():
         if maximizing_whites==1:
             v = float('-inf')
             for j in range(len(potential_spots)):
-                cur_board = Board.Field(preset=potential_spots[j], whites_turn=0) # проверить, какой должен быть turn
+                cur_board = Field(preset=potential_spots[j], whites_turn=0) # проверить, какой должен быть turn
 
                 if visualize_tree==1:
                     cur_board.parent = board
@@ -91,7 +95,7 @@ class Bot():
         else:
             v = float('inf')
             for j in range(len(potential_spots)):
-                cur_board = Board.Field(potential_spots[j], whites_turn=1) # проверить, какой должен быть turn
+                cur_board = Field(potential_spots[j], whites_turn=1) # проверить, какой должен быть turn
                 if visualize_tree==1:
                     cur_board.parent = board
                 alpha_beta_results = self.alpha_beta(cur_board, depth - 1, alpha, beta, 1, visualize_tree=visualize_tree)
@@ -157,12 +161,20 @@ class BotNN(Bot):
     def __init__(self, the_board=None):
         self.board = the_board
         self.colour = 'black'
-        self.model = load_model('model_1.keras')
+        if KERAS_AVAILABLE:
+            self.model = load_model('model_1.keras')
+        else:
+            self.model = None
+            print("Warning: Keras is not available. BotNN will not work properly.")
 
     def __str__(self):
         return 'Bot class'
 
     def get_next_move(self):
+        if self.model is None:
+            # Fallback to basic bot behavior if Keras is not available
+            return super().get_next_move()
+            
         # return random.choice(self.board.available_moves(colour=self.colour)[0])
         if len(self.board.available_moves(self.board.white_num_to_colour[self.board.whites_turn])[0])==1:
             return self.board.available_moves(self.board.white_num_to_colour[self.board.whites_turn])[0][0]

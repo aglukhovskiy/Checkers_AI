@@ -1,8 +1,8 @@
-from Bot import Bot
-import Board
+from src.ai.bot import Bot
+from . import board
 import random
 # import Encoder
-from encoders.oneplane import OnePlaneEncoder
+from src.ai.encoders.oneplane import OnePlaneEncoder
 
 class Checkers:
 
@@ -49,7 +49,7 @@ class Checkers:
 # Text game
 
 if __name__ == '__main__':
-    f = Board.Field()
+    f = board.Field()
     bot = Bot(the_depth=2, the_board=f)
     # bot = Bot.BotNN(the_board=f)
     encoder = OnePlaneEncoder()

@@ -1,4 +1,4 @@
-from Board import King
+from src.core.board import King
 import numpy as np
 
 class TenPlaneEncoder():

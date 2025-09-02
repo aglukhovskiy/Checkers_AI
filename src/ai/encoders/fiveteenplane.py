@@ -1,5 +1,5 @@
 import numpy as np
-from Board_v2 import CheckersGame
+from src.core.board_v2 import CheckersGame
 
 class FiveteenPlaneEncoder:
     """Кодирует доску шашек в 12-плоскостное представление"""
