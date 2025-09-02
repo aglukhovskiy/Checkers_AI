@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from src.core.checkers import Checkers
-from src.core.board import Field
+from src.core.board import Field, King, Piece
 
 app = Flask(__name__)
 CORS(app, resources={
