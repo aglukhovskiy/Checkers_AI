@@ -25,7 +25,7 @@ let gameState = {
 // Инициализация новой игры
 async function initializeGame() {
     try {
-        const response = await fetch('/new_game', {
+        const response = await fetch('http://localhost:5000/new_game', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
