@@ -145,57 +145,6 @@ function getPossibleMoves(row, col) {
 }
 
 // Обработка клика по доске
-function handleClick(event) {
-    if (gameState.currentPlayer !== 1) return; // Ход бота
-    
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    
-    const col = Math.floor(x / SQUARE_SIZE);
-    const row = Math.floor(y / SQUARE_SIZE);
-    
-    // Если шашка уже выбрана, пытаемся сделать ход
-    if (gameState.selectedPiece) {
-        const [selectedRow, selectedCol] = gameState.selectedPiece;
-        
-        // Проверяем, является ли клик допустимым ходом
-        const isValidMove = gameState.possibleMoves.some(
-            ([r, c]) => r === row && c === col
-        );
-        
-        if (isValidMove) {
-            // Делаем ход
-            gameState.board[row][col] = gameState.board[selectedRow][selectedCol];
-            gameState.board[selectedRow][selectedCol] = 0;
-            gameState.currentPlayer = -1; // Передаем ход боту
-            gameState.selectedPiece = null;
-            gameState.possibleMoves = [];
-            
-            // Проверяем превращение в дамку
-            if ((row === BOARD_SIZE - 1 && gameState.board[row][col] === 1) ||
-                (row === 0 && gameState.board[row][col] === -1)) {
-                gameState.board[row][col] *= 2; // Делаем дамку
-            }
-            
-            updateGameInfo();
-            drawBoard();
-            
-            // Ход бота (пока просто ждем 1 секунду)
-            setTimeout(botMove, 1000);
-            return;
-        }
-    }
-    
-    // Выбираем шашку, если она принадлежит текущему игроку
-    if (gameState.board[row][col] * gameState.currentPlayer > 0) {
-        gameState.selectedPiece = [row, col];
-        gameState.possibleMoves = getPossibleMoves(row, col);
-        drawBoard();
-    }
-}
-
-// Обработка клика по доске
 async function handleClick(event) {
     if (gameState.currentPlayer !== 1 || gameState.gameOver) return;
     
@@ -270,17 +219,16 @@ async function botMove() {
 }
 
 // Новая игра
-function newGame() {
+async function newGame() {
+    await initializeGame();
     gameState = {
-        board: initializeBoard(),
+        board: Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0)),
         currentPlayer: 1,
         selectedPiece: null,
         possibleMoves: [],
-        whitePieces: 12,
-        blackPieces: 12
+        gameOver: false
     };
-    updateGameInfo();
-    drawBoard();
+    await updateBoardState();
 }
 
 // Инициализация игры
