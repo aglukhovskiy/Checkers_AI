@@ -225,6 +225,7 @@ Desktop.ini
 # Project specific
 # Experience and model directories
 rl/models_n_exp/
+!rl/models_n_exp/test_model_custom_fiveteenplane_cbv.hdf5
 experience_*/
 models/
 
