@@ -4,7 +4,12 @@ from src.core.checkers import Checkers
 from src.core.board import Field
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources={
+    r"/new_game": {"origins": "http://localhost:8000"},
+    r"/get_state": {"origins": "http://localhost:8000"},
+    r"/make_move": {"origins": "http://localhost:8000"},
+    r"/bot_move": {"origins": "http://localhost:8000"}
+})
 
 # Инициализация игры
 game_field = Field()
