@@ -43,7 +43,7 @@ async function initializeGame() {
 // Обновление состояния доски с сервера
 async function updateBoardState() {
     try {
-        const response = await fetch('/get_state', {
+        const response = await fetch('http://localhost:5000/get_state', {
             method: 'GET'
         });
         const data = await response.json();
