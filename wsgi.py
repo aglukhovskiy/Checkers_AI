@@ -1,6 +1,7 @@
 import os
 import sys
 import traceback
+from waitress import serve
 
 def create_app():
     """Create and configure the Flask app"""
@@ -42,13 +43,7 @@ def create_app():
 # Create the app
 app = create_app()
 
-if __name__ == "__main__":
-    try:
-        from waitress import serve
-        port = int(os.environ.get('PORT', 8080))
-        print(f"Starting server on port {port}")
-        serve(app, host='0.0.0.0', port=port)
-    except Exception as e:
-        print(f"CRITICAL ERROR: {str(e)}")
-        traceback.print_exc()
-        sys.exit(1)
+# Always run the server
+port = int(os.environ.get('PORT', 8080))
+print(f"Starting server on port {port}")
+serve(app, host='0.0.0.0', port=port)
