@@ -26,9 +26,9 @@ def make_move():
     # Конвертируем строковый ход в формат board_v2
     # Формат: "a3b4" -> (from_row, from_col, to_row, to_col)
     from_col = ord(move_str[0]) - ord('a')
-    from_row = 8 - int(move_str[1])
+    from_row = int(move_str[1]) - 1  # Convert notation (1-8) to engine row (0-7)
     to_col = ord(move_str[2]) - ord('a')
-    to_row = 8 - int(move_str[3])
+    to_row = int(move_str[3]) - 1  # Convert notation (1-8) to engine row (0-7)
     
     print(f"APIv2: Конвертировано: '{move_str}' -> from ({from_row},{from_col}) to ({to_row},{to_col})")
     
@@ -142,7 +142,7 @@ def get_possible_moves():
         # Конвертируем ходы обратно в формат интерфейса
         moves = []
         for move in piece_moves:
-            interface_to_row = 7 - move[4]  # Конвертируем обратно для интерфейса
+            interface_to_row = move[4]  # No inversion needed - engine and GUI now aligned
             moves.append([interface_to_row, move[5]])
         
         return jsonify({
