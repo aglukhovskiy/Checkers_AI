@@ -1,10 +1,10 @@
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from src.core.board_v2 import CheckersGame
 import numpy as np
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
 # Расширенные настройки CORS и логирование
 CORS(app, resources={
@@ -23,6 +23,10 @@ def log_request():
 
 @app.route('/')
 def home():
+    return send_from_directory('static', 'index.html')
+
+@app.route('/api')
+def api_info():
     return jsonify({
         'status': 'ok',
         'message': 'Checkers API is running',
@@ -233,14 +237,9 @@ if __name__ == '__main__':
             print(f"- {rule.rule} ({', '.join(rule.methods)})")
         
         print("\nStarting production server...")
-        # Явно предотвращаем завершение работы
-        while True:
-            try:
-                serve(app, host='0.0.0.0', port=port)
-            except Exception as e:
-                print(f"Server error: {str(e)}")
-                print("Restarting server...")
-                continue
+        # Запускаем сервер без бесконечного цикла
+        serve(app, host='0.0.0.0', port=port)
+        
     except Exception as e:
         print(f"\n!!! Critical server error: {str(e)} !!!")
         print("Stack trace:")

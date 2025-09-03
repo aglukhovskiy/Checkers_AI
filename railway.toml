@@ -2,10 +2,10 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "python api_v2.py"
+startCommand = "gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 120 wsgi:app"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
 [[services]]
 name = "checkers-api"
-startCommand = "python api_v2.py"
+startCommand = "gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 120 wsgi:app"
