@@ -1,6 +1,7 @@
 import os
 import sys
 import traceback
+import time
 from waitress import serve
 
 def create_app():
@@ -9,6 +10,7 @@ def create_app():
         print("=== Starting WSGI Application ===")
         print(f"Python version: {sys.version}")
         print(f"Working directory: {os.getcwd()}")
+        print(f"Environment variables: {dict(os.environ)}")
         
         # Import Flask app
         print("Importing Flask app...")
@@ -43,7 +45,19 @@ def create_app():
 # Create the app
 app = create_app()
 
-# Always run the server
+# Run the server with error handling
 port = int(os.environ.get('PORT', 8080))
 print(f"Starting server on port {port}")
-serve(app, host='0.0.0.0', port=port)
+
+try:
+    print("Server starting...")
+    serve(app, host='0.0.0.0', port=port, threads=1)
+except Exception as e:
+    print(f"CRITICAL SERVER ERROR: {str(e)}")
+    print("Stack trace:")
+    traceback.print_exc()
+    print("Waiting 5 seconds before exiting...")
+    time.sleep(5)  # Даем время для записи логов
+    sys.exit(1)
+
+print("Server stopped normally")

@@ -1,8 +1,20 @@
 import os
+import sys
+import traceback
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from src.core.board_v2 import CheckersGame
-import numpy as np
+
+print("=== Initializing API v2 ===")
+print(f"Python path: {sys.path}")
+
+try:
+    from src.core.board_v2 import CheckersGame
+    import numpy as np
+    print("All imports successful")
+except ImportError as e:
+    print(f"IMPORT ERROR: {str(e)}")
+    traceback.print_exc()
+    raise
 
 app = Flask(__name__, static_folder='static')
 
