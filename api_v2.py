@@ -57,6 +57,10 @@ def log_request():
 def home():
     return send_from_directory('static', 'index.html')
 
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    return send_from_directory('static', filename)
+
 @app.route('/health')
 def health_check():
     try:
