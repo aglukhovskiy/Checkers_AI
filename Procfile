@@ -1,1 +1,1 @@
-web: python -u wsgi.py
+web: gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --keep-alive 60 wsgi:app
