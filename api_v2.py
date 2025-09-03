@@ -94,7 +94,7 @@ def get_possible_moves():
     col = data.get('col')
     
     # Конвертируем координаты из формата интерфейса в формат board_v2
-    board_row = row  # GUI and engine now use same row numbering (0-7 top to bottom)
+    board_row = row  # GUI and engine use same row numbering (0-7 top to bottom)
     
     # Проверяем наличие обязательных взятий
     all_captures = game.get_capture_moves()
@@ -131,7 +131,7 @@ def get_possible_moves():
             for capture_seq in all_captures:
                 if capture_seq:
                     first_move = capture_seq[0]
-                    interface_to_row = 7 - first_move[4]
+                    interface_to_row = first_move[4]  # Убираем инверсию - используем прямое соответствие
                     all_capture_moves.append([interface_to_row, first_move[5]])
             
             return jsonify({

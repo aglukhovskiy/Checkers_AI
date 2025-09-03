@@ -242,9 +242,9 @@ async function handleClick(event) {
         if (isValidMove) {
             // Формируем ход в формате "a3b4"
             const fromColChar = String.fromCharCode(97 + selectedCol);
-            const fromRowNum = 8 - selectedRow;
+            const fromRowNum = selectedRow + 1;  // Прямое соответствие: row=0 -> "1", row=7 -> "8"
             const toColChar = String.fromCharCode(97 + col);
-            const toRowNum = 8 - row;
+            const toRowNum = row + 1;           // Прямое соответствие: row=0 -> "1", row=7 -> "8"
             const move = `${fromColChar}${fromRowNum}${toColChar}${toRowNum}`;
             
             console.log('JS: Формируем ход:', {
