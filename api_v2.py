@@ -222,7 +222,8 @@ if __name__ == '__main__':
         try:
             import flask
             import flask_cors
-            print("- Flask and CORS imports OK")
+            from waitress import serve
+            print("- All imports OK")
         except ImportError as e:
             print(f"!!! Import error: {str(e)} !!!")
             raise
@@ -231,8 +232,8 @@ if __name__ == '__main__':
         for rule in app.url_map.iter_rules():
             print(f"- {rule.rule} ({', '.join(rule.methods)})")
         
-        print("\nStarting server...")
-        app.run(host='0.0.0.0', port=port, debug=False)
+        print("\nStarting production server...")
+        serve(app, host='0.0.0.0', port=port)
         print("Server started successfully")
     except Exception as e:
         print(f"\n!!! Critical server error: {str(e)} !!!")
