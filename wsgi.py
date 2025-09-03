@@ -2,25 +2,18 @@
 WSGI entry point for Railway deployment
 """
 import os
-import signal
 import time
 from api_v2 import app
+from waitress import serve
 
-class Server:
-    def __init__(self):
-        self.should_exit = False
-        signal.signal(signal.SIGTERM, self.handle_exit)
-        signal.signal(signal.SIGINT, self.handle_exit)
+port = int(os.environ.get('PORT', 8080))
+print(f"Starting server on port {port}")
 
-    def handle_exit(self, signum, frame):
-        print(f"Received signal {signum}, shutting down gracefully...")
-        self.should_exit = True
-
-    def run(self):
-        port = int(os.environ.get('PORT', 8080))
-        from waitress import serve
+# Railway требует долго работающий процесс
+while True:
+    try:
         serve(app, host='0.0.0.0', port=port)
-
-if __name__ == "__main__":
-    server = Server()
-    server.run()
+    except Exception as e:
+        print(f"Server error: {e}")
+        print("Restarting server in 5 seconds...")
+        time.sleep(5)
