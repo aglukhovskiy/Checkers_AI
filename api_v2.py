@@ -25,7 +25,7 @@ def log_request():
 def home():
     return send_from_directory('static', 'index.html')
 
-@app.route('/health')
+@app.route('/api/health')
 def health_check():
     return jsonify({'status': 'ok'}), 200
 

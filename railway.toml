@@ -11,3 +11,5 @@ name = "checkers-api"
 startCommand = "python wsgi.py"
 healthCheckPath = "/health"
 healthCheckTimeoutSeconds = 60
+port = 8080
+protocol = "http"
