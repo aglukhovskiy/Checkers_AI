@@ -13,10 +13,8 @@ const WHITE_PIECE_COLOR = '#ffffff';
 const BLACK_PIECE_COLOR = '#000000';
 const HIGHLIGHT_COLOR = '#00ff00';
 
-// API URL - будет заменяться автоматически при деплое
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:8080'
-    : 'https://checkers-a27051f3-4800-4cca-bdc3-26889a214275.up.railway.app';
+// API URL - автоматически определяется на основе текущего домена
+const API_URL = window.location.origin;
 
 // Состояние игры (теперь хранится на сервере)
 let gameState = {
