@@ -32,21 +32,26 @@ def make_move():
     
     print(f"APIv2: Конвертировано: '{move_str}' -> from ({from_row},{from_col}) to ({to_row},{to_col})")
     
-    # Ищем подходящий ход в доступных
+    # Получаем все возможные ходы
     available_moves = game.get_possible_moves()
     print(f"APIv2: Доступно ходов: {len(available_moves)} последовательностей")
     
     selected_move = None
     
-    for i, move_sequence in enumerate(available_moves):
-        print(f"APIv2: Проверяем последовательность {i}: {move_sequence}")
-        for j, move in enumerate(move_sequence):
-            print(f"APIv2:  Ход {j}: {move} - сравниваем с ({from_row},{from_col})->({to_row},{to_col})")
-            if (move[0] == from_row and move[1] == from_col and
-                move[4] == to_row and move[5] == to_col):
-                selected_move = move_sequence
-                print(f"APIv2: Найден подходящий ход!")
-                break
+    # Проверяем все последовательности ходов
+    for move_sequence in available_moves:
+        for move in move_sequence:
+            # Для обычных ходов проверяем только начальную и конечную позиции
+            if move[2] is None:  # Это обычный ход
+                if (move[0] == from_row and move[1] == from_col and
+                    move[4] == to_row and move[5] == to_col):
+                    selected_move = [move]  # Обычный ход - последовательность из одного хода
+                    break
+            else:  # Это взятие
+                if (move[0] == from_row and move[1] == from_col and
+                    move[4] == to_row and move[5] == to_col):
+                    selected_move = move_sequence
+                    break
         if selected_move:
             break
     
