@@ -213,20 +213,30 @@ def bot_move():
 
 if __name__ == '__main__':
     try:
+        print("\n=== Initializing Flask application ===")
         port = int(os.environ.get('PORT', 8080))
-        print(f"\n=== Starting Flask server on port {port} ===")
+        print(f"Using port: {port}")
         
-        # Упрощенный вывод CORS конфигурации
-        if 'CORS_ORIGINS' in app.config:
-            print(f"CORS origins: {app.config['CORS_ORIGINS']}")
-        else:
-            print("CORS origins: Not configured")
-            
+        # Проверка основных компонентов
+        print("\nChecking dependencies:")
+        try:
+            import flask
+            import flask_cors
+            print("- Flask and CORS imports OK")
+        except ImportError as e:
+            print(f"!!! Import error: {str(e)} !!!")
+            raise
+
         print("\nRegistered routes:")
         for rule in app.url_map.iter_rules():
             print(f"- {rule.rule} ({', '.join(rule.methods)})")
         
+        print("\nStarting server...")
         app.run(host='0.0.0.0', port=port, debug=False)
+        print("Server started successfully")
     except Exception as e:
-        print(f"\n!!! Failed to start server: {str(e)} !!!")
+        print(f"\n!!! Critical server error: {str(e)} !!!")
+        print("Stack trace:")
+        import traceback
+        traceback.print_exc()
         raise
