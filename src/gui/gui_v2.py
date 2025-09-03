@@ -291,8 +291,8 @@ def check_and_select_piece(row, col):
                 selected_piece = (row, col)
                 possible_moves = piece_captures
             else:
-                # Эта шашка не может совершать взятие, но другие могут
-                print("У этой шашки нет обязательных взятий!")
+                # Эта шашка не может совершать взятие, но другие могут - ОБЫЧНЫЕ ХОДЫ ЗАБЛОКИРОВАНЫ
+                print("У этой шашки нет обязательных взятий! Обычные ходы заблокированы.")
         else:
             # Нет обязательных взятий, проверяем обычные ходы
             regular_moves = game.get_regular_moves_for_piece(row, col)

@@ -25,13 +25,16 @@ let gameState = {
 // Инициализация новой игры
 async function initializeGame() {
     try {
+        console.log('Initializing new game...');
         const response = await fetch('http://localhost:5000/new_game', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             }
         });
+        console.log('New game response status:', response.status);
         const data = await response.json();
+        console.log('New game response data:', data);
         if (data.status === 'ok') {
             await updateBoardState();
         }
@@ -43,15 +46,25 @@ async function initializeGame() {
 // Обновление состояния доски с сервера
 async function updateBoardState() {
     try {
+        console.log('Updating board state...');
         const response = await fetch('http://localhost:5000/get_state', {
             method: 'GET'
         });
+        console.log('Get state response status:', response.status);
         const data = await response.json();
+        console.log('Get state response data:', data);
         
         if (data.status === 'ok') {
             gameState.board = data.board.field;
             gameState.currentPlayer = data.board.current_player === 'white' ? 1 : -1;
             gameState.gameOver = data.board.game_over;
+            
+            // Логируем состояние доски для отладки
+            console.log('Board state:');
+            gameState.board.forEach((row, i) => {
+                console.log(`Row ${i}:`, row);
+            });
+            
             updateGameInfo();
             drawBoard();
         }
@@ -68,9 +81,12 @@ function drawBoard() {
             ctx.fillStyle = (row + col) % 2 === 0 ? LIGHT_COLOR : DARK_COLOR;
             ctx.fillRect(col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
             
-            // Рисуем шашку
-            if (gameState.board[row][col] !== 0) {
-                const isWhite = gameState.board[row][col] > 0;
+            // Рисуем шашку (только на темных клетках)
+            if (gameState.board[row][col] !== 0 && (row + col) % 2 === 1) {
+                const piece = gameState.board[row][col];
+                const isWhite = piece > 0;
+                const isKing = Math.abs(piece) === 2;
+                
                 ctx.fillStyle = isWhite ? WHITE_PIECE_COLOR : BLACK_PIECE_COLOR;
                 ctx.beginPath();
                 ctx.arc(
@@ -82,7 +98,19 @@ function drawBoard() {
                 );
                 ctx.fill();
                 ctx.strokeStyle = isWhite ? BLACK_PIECE_COLOR : WHITE_PIECE_COLOR;
+                ctx.lineWidth = 2;
                 ctx.stroke();
+                
+                // Рисуем корону для дамки
+                if (isKing) {
+                    ctx.fillStyle = isWhite ? BLACK_PIECE_COLOR : WHITE_PIECE_COLOR;
+                    ctx.font = `${SQUARE_SIZE / 4}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.fillText('♔',
+                        col * SQUARE_SIZE + SQUARE_SIZE / 2,
+                        row * SQUARE_SIZE + SQUARE_SIZE / 2 + SQUARE_SIZE / 8
+                    );
+                }
             }
         }
     }
@@ -103,7 +131,9 @@ function drawBoard() {
     // Подсветка возможных ходов
     gameState.possibleMoves.forEach(move => {
         const [row, col] = move;
-        ctx.fillStyle = 'rgba(173, 216, 230, 0.5)';
+        
+        // Разные цвета для обычных ходов и взятий
+        ctx.fillStyle = 'rgba(173, 216, 230, 0.5)'; // голубой для обычных ходов
         ctx.beginPath();
         ctx.arc(
             col * SQUARE_SIZE + SQUARE_SIZE / 2,
@@ -113,6 +143,11 @@ function drawBoard() {
             Math.PI * 2
         );
         ctx.fill();
+        
+        // Красная обводка для ходов со взятием
+        ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
     });
 }
 
@@ -123,30 +158,62 @@ function updateGameInfo() {
     scoreElement.textContent = `Белые: ${gameState.whitePieces} | Черные: ${gameState.blackPieces}`;
 }
 
-// Получение возможных ходов для шашки
-function getPossibleMoves(row, col) {
-    const moves = [];
-    const piece = gameState.board[row][col];
-    const direction = piece > 0 ? 1 : -1; // Направление движения
-    
-    // Проверка обычных ходов
-    for (let dc = -1; dc <= 1; dc += 2) {
-        const newRow = row + direction;
-        const newCol = col + dc;
+// Получение возможных ходов для шашки с сервера
+async function getPossibleMoves(row, col) {
+    try {
+        console.log('JS: Запрос ходов для шашки на', row, col);
+        const response = await fetch('http://localhost:5000/get_possible_moves', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ row, col })
+        });
         
-        if (newRow >= 0 && newRow < BOARD_SIZE &&
-            newCol >= 0 && newCol < BOARD_SIZE &&
-            gameState.board[newRow][newCol] === 0) {
-            moves.push([newRow, newCol]);
+        const data = await response.json();
+        console.log('JS: Ответ сервера:', data);
+        
+        if (data.status === 'ok') {
+            // Проверим каждый ход на валидность (должен быть на темной клетке)
+            if (data.moves && data.moves.length > 0) {
+                data.moves.forEach(move => {
+                    const [moveRow, moveCol] = move;
+                    const isDarkCell = (moveRow + moveCol) % 2 === 1;
+                    console.log(`JS: Ход на [${moveRow},${moveCol}] - темная клетка: ${isDarkCell}`);
+                });
+            }
+            
+            // Обработка обязательного взятия
+            if (data.capture_required) {
+                if (data.moves.length === 0) {
+                    statusElement.textContent = 'Обязательное взятие другой шашкой!';
+                } else if (data.all_captures) {
+                    statusElement.textContent = 'Обязательное взятие! Выберите шашку, которая может брать.';
+                } else {
+                    statusElement.textContent = 'Обязательное взятие!';
+                }
+            } else {
+                // Сбрасываем статус, если нет обязательного взятия
+                updateGameInfo();
+            }
+            return data.moves;
         }
+        return [];
+    } catch (error) {
+        console.error('Error getting moves from server:', error);
+        return [];
     }
-    
-    return moves;
 }
 
 // Обработка клика по доске
 async function handleClick(event) {
-    if (gameState.currentPlayer !== 1 || gameState.gameOver) return;
+    console.log('Canvas clicked!');
+    console.log('Current player:', gameState.currentPlayer, 'Game over:', gameState.gameOver);
+    
+    if (gameState.currentPlayer !== 1 || gameState.gameOver) {
+        console.log('Not player turn or game over');
+        return;
+    }
     
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -155,8 +222,14 @@ async function handleClick(event) {
     const col = Math.floor(x / SQUARE_SIZE);
     const row = Math.floor(y / SQUARE_SIZE);
     
+    console.log('Clicked at row:', row, 'col:', col);
+    console.log('Board value at clicked position:', gameState.board[row][col]);
+    
     // Если шашка уже выбрана, пытаемся сделать ход
     if (gameState.selectedPiece) {
+        console.log('Piece already selected:', gameState.selectedPiece);
+        console.log('Possible moves:', gameState.possibleMoves);
+        
         const [selectedRow, selectedCol] = gameState.selectedPiece;
         
         // Проверяем, является ли клик допустимым ходом
@@ -164,12 +237,25 @@ async function handleClick(event) {
             ([r, c]) => r === row && c === col
         );
         
+        console.log('Is valid move:', isValidMove);
+        
         if (isValidMove) {
             // Формируем ход в формате "a3b4"
-            const move = `${String.fromCharCode(97 + selectedCol)}${8-selectedRow}${String.fromCharCode(97 + col)}${8-row}`;
+            const fromColChar = String.fromCharCode(97 + selectedCol);
+            const fromRowNum = 8 - selectedRow;
+            const toColChar = String.fromCharCode(97 + col);
+            const toRowNum = 8 - row;
+            const move = `${fromColChar}${fromRowNum}${toColChar}${toRowNum}`;
+            
+            console.log('JS: Формируем ход:', {
+                selected: [selectedRow, selectedCol],
+                target: [row, col],
+                move: move,
+                details: `${fromColChar}${fromRowNum}->${toColChar}${toRowNum}`
+            });
             
             try {
-                const response = await fetch('/make_move', {
+                const response = await fetch('http://localhost:5000/make_move', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -178,23 +264,50 @@ async function handleClick(event) {
                 });
                 
                 const data = await response.json();
+                console.log('Move response:', data);
+                
                 if (data.status === 'ok') {
+                    gameState.selectedPiece = null;
+                    gameState.possibleMoves = [];
                     await updateBoardState();
-                    if (!gameState.gameOver) {
-                        await botMove();
+                    
+                    if (!gameState.gameOver && gameState.currentPlayer === -1) {
+                        setTimeout(async () => {
+                            await botMove();
+                        }, 500);
                     }
+                } else {
+                    console.error('Move failed:', data);
+                    statusElement.textContent = 'Неверный ход!';
                 }
             } catch (error) {
                 console.error('Error making move:', error);
+                statusElement.textContent = 'Ошибка соединения с сервером';
             }
             return;
+        } else {
+            console.log('Invalid move - clearing selection');
         }
     }
     
-    // Выбираем шашку, если она принадлежит текущему игроку
-    if (gameState.board[row][col] * gameState.currentPlayer > 0) {
+    // Выбираем шашку, если она принадлежит текущему игроку и находится на темной клетке
+    const isOwnPiece = gameState.board[row][col] * gameState.currentPlayer > 0;
+    const isDarkCell = (row + col) % 2 === 1;
+    console.log('Is own piece:', isOwnPiece, 'Is dark cell:', isDarkCell);
+    
+    if (isOwnPiece && isDarkCell) {
+        console.log('Selecting piece at:', row, col);
         gameState.selectedPiece = [row, col];
-        gameState.possibleMoves = getPossibleMoves(row, col);
+        
+        // Получаем возможные ходы с сервера
+        gameState.possibleMoves = await getPossibleMoves(row, col);
+        console.log('Possible moves for selected piece:', gameState.possibleMoves);
+        drawBoard();
+    } else {
+        console.log('Clearing selection - not own piece or not dark cell');
+        // Сбрасываем выбор, если кликнули не на свою шашку
+        gameState.selectedPiece = null;
+        gameState.possibleMoves = [];
         drawBoard();
     }
 }
@@ -202,7 +315,8 @@ async function handleClick(event) {
 // Ход бота
 async function botMove() {
     try {
-        const response = await fetch('/bot_move', {
+        console.log('Requesting bot move...');
+        const response = await fetch('http://localhost:5000/bot_move', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -210,8 +324,21 @@ async function botMove() {
         });
         
         const data = await response.json();
+        console.log('Bot move response:', data);
+        
         if (data.status === 'ok') {
-            await updateBoardState();
+            // Обновляем состояние доски из ответа
+            if (data.board) {
+                gameState.board = data.board.field;
+                gameState.currentPlayer = data.board.current_player === 'white' ? 1 : -1;
+                gameState.gameOver = data.board.game_over;
+                updateGameInfo();
+                drawBoard();
+            } else {
+                await updateBoardState();
+            }
+        } else {
+            console.error('Bot move failed:', data);
         }
     } catch (error) {
         console.error('Error with bot move:', error);
