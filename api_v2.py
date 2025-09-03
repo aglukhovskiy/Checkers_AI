@@ -1,4 +1,7 @@
 import os
+import threading
+import time
+import requests
 import sys
 import traceback
 from flask import Flask, request, jsonify, send_from_directory
@@ -17,6 +20,23 @@ except ImportError as e:
     raise
 
 app = Flask(__name__, static_folder='static')
+
+def start_ping_thread():
+    """Фоновая задача для поддержания активности"""
+    def ping():
+        while True:
+            try:
+                requests.get(f"http://localhost:{os.getenv('PORT', 8080)}/health")
+                time.sleep(30)  # Ping каждые 30 секунд
+            except Exception as e:
+                print(f"Ping error: {str(e)}")
+                time.sleep(5)
+    
+    if os.getenv('RAILWAY_ENVIRONMENT') == 'production':
+        thread = threading.Thread(target=ping, daemon=True)
+        thread.start()
+
+start_ping_thread()  # Запускаем фоновый ping
 
 # Расширенные настройки CORS и логирование
 CORS(app, resources={
@@ -39,10 +59,24 @@ def home():
 
 @app.route('/health')
 def health_check():
-    return jsonify({
-        'status': 'ok',
-        'message': 'Service is healthy'
-    })
+    try:
+        # Проверяем работоспособность игрового движка
+        test_game = CheckersGame()
+        return jsonify({
+            'status': 'ok',
+            'message': 'Service is healthy',
+            'game_engine': 'working'
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e),
+            'game_engine': 'failed'
+        }), 500
+
+@app.route('/ping')
+def ping():
+    return jsonify({'status': 'pong'})
 
 @app.route('/api')
 def api_info():

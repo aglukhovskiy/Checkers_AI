@@ -49,15 +49,13 @@ app = create_app()
 port = int(os.environ.get('PORT', 8080))
 print(f"Starting server on port {port}")
 
-try:
-    print("Server starting...")
-    serve(app, host='0.0.0.0', port=port, threads=1)
-except Exception as e:
-    print(f"CRITICAL SERVER ERROR: {str(e)}")
-    print("Stack trace:")
-    traceback.print_exc()
-    print("Waiting 5 seconds before exiting...")
-    time.sleep(5)  # Даем время для записи логов
-    sys.exit(1)
-
-print("Server stopped normally")
+while True:
+    try:
+        print("Server starting...")
+        serve(app, host='0.0.0.0', port=port, threads=1)
+    except Exception as e:
+        print(f"CRITICAL SERVER ERROR: {str(e)}")
+        print("Stack trace:")
+        traceback.print_exc()
+        print("Restarting server in 5 seconds...")
+        time.sleep(5)

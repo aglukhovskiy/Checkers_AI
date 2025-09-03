@@ -2,14 +2,16 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "python wsgi.py"
+startCommand = "python -u wsgi.py"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
 [[services]]
 name = "checkers-api"
-startCommand = "python wsgi.py"
+startCommand = "python -u wsgi.py"
 healthCheckPath = "/health"
-healthCheckTimeoutSeconds = 60
+healthCheckTimeoutSeconds = 30
+healthCheckIntervalSeconds = 15
+initialDelaySeconds = 10
 port = 8080
 protocol = "http"
