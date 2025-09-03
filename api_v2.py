@@ -208,6 +208,6 @@ def bot_move():
         return jsonify({'status': 'error', 'message': str(e)})
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 8080))  # Railway использует 8080 по умолчанию
     print(f"Starting server on port {port}")
     app.run(host='0.0.0.0', port=port, debug=False)
