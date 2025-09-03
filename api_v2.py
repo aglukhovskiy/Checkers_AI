@@ -233,8 +233,14 @@ if __name__ == '__main__':
             print(f"- {rule.rule} ({', '.join(rule.methods)})")
         
         print("\nStarting production server...")
-        serve(app, host='0.0.0.0', port=port)
-        print("Server started successfully")
+        # Явно предотвращаем завершение работы
+        while True:
+            try:
+                serve(app, host='0.0.0.0', port=port)
+            except Exception as e:
+                print(f"Server error: {str(e)}")
+                print("Restarting server...")
+                continue
     except Exception as e:
         print(f"\n!!! Critical server error: {str(e)} !!!")
         print("Stack trace:")
