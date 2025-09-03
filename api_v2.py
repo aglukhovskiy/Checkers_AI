@@ -26,9 +26,9 @@ def make_move():
     # Конвертируем строковый ход в формат board_v2
     # Формат: "a3b4" -> (from_row, from_col, to_row, to_col)
     from_col = ord(move_str[0]) - ord('a')
-    from_row = 8 - int(move_str[1])
+    from_row = int(move_str[1]) - 1  # Convert notation (1-8) to engine row (0-7)
     to_col = ord(move_str[2]) - ord('a')
-    to_row = 8 - int(move_str[3])
+    to_row = int(move_str[3]) - 1  # Convert notation (1-8) to engine row (0-7)
     
     print(f"APIv2: Конвертировано: '{move_str}' -> from ({from_row},{from_col}) to ({to_row},{to_col})")
     
@@ -89,7 +89,7 @@ def get_possible_moves():
     col = data.get('col')
     
     # Конвертируем координаты из формата интерфейса в формат board_v2
-    board_row = 7 - row
+    board_row = row  # GUI and engine now use same row numbering (0-7 top to bottom)
     
     # Проверяем наличие обязательных взятий
     all_captures = game.get_capture_moves()
