@@ -234,3 +234,5 @@ models/
 
 rl/test_2.py
 Board_2.py
+DEPLOYMENT.md
+api.py

@@ -13,20 +13,27 @@ const WHITE_PIECE_COLOR = '#ffffff';
 const BLACK_PIECE_COLOR = '#000000';
 const HIGHLIGHT_COLOR = '#00ff00';
 
+// API URL - будет заменяться автоматически при деплое
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? 'http://localhost:5000' 
+    : 'https://your-backend-url.railway.app';
+
 // Состояние игры (теперь хранится на сервере)
 let gameState = {
     board: Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0)),
     currentPlayer: 1,
     selectedPiece: null,
     possibleMoves: [],
-    gameOver: false
+    gameOver: false,
+    whitePieces: 12,
+    blackPieces: 12
 };
 
 // Инициализация новой игры
 async function initializeGame() {
     try {
         console.log('Initializing new game...');
-        const response = await fetch('http://localhost:5000/new_game', {
+        const response = await fetch(`${API_URL}/new_game`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -40,6 +47,7 @@ async function initializeGame() {
         }
     } catch (error) {
         console.error('Error initializing game:', error);
+        statusElement.textContent = 'Ошибка подключения к серверу. Проверьте backend.';
     }
 }
 
@@ -47,7 +55,7 @@ async function initializeGame() {
 async function updateBoardState() {
     try {
         console.log('Updating board state...');
-        const response = await fetch('http://localhost:5000/get_state', {
+        const response = await fetch(`${API_URL}/get_state`, {
             method: 'GET'
         });
         console.log('Get state response status:', response.status);
@@ -59,10 +67,14 @@ async function updateBoardState() {
             gameState.currentPlayer = data.board.current_player === 'white' ? 1 : -1;
             gameState.gameOver = data.board.game_over;
             
-            // Логируем состояние доски для отладки
-            console.log('Board state:');
-            gameState.board.forEach((row, i) => {
-                console.log(`Row ${i}:`, row);
+            // Подсчет шашек
+            gameState.whitePieces = 0;
+            gameState.blackPieces = 0;
+            gameState.board.forEach(row => {
+                row.forEach(cell => {
+                    if (cell > 0) gameState.whitePieces++;
+                    if (cell < 0) gameState.blackPieces++;
+                });
             });
             
             updateGameInfo();
@@ -70,6 +82,7 @@ async function updateBoardState() {
         }
     } catch (error) {
         console.error('Error updating board:', error);
+        statusElement.textContent = 'Ошибка обновления доски';
     }
 }
 
@@ -153,8 +166,18 @@ function drawBoard() {
 
 // Обновление информации о игре
 function updateGameInfo() {
-    statusElement.textContent = gameState.currentPlayer === 1 ? 
-        'Ваш ход (белые)' : 'Ход бота (черные)';
+    if (gameState.gameOver) {
+        if (gameState.whitePieces === 0) {
+            statusElement.textContent = 'Черные победили!';
+        } else if (gameState.blackPieces === 0) {
+            statusElement.textContent = 'Белые победили!';
+        } else {
+            statusElement.textContent = 'Игра окончена!';
+        }
+    } else {
+        statusElement.textContent = gameState.currentPlayer === 1 ? 
+            'Ваш ход (белые)' : 'Ход бота (черные)';
+    }
     scoreElement.textContent = `Белые: ${gameState.whitePieces} | Черные: ${gameState.blackPieces}`;
 }
 
@@ -162,7 +185,7 @@ function updateGameInfo() {
 async function getPossibleMoves(row, col) {
     try {
         console.log('JS: Запрос ходов для шашки на', row, col);
-        const response = await fetch('http://localhost:5000/get_possible_moves', {
+        const response = await fetch(`${API_URL}/get_possible_moves`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -255,7 +278,7 @@ async function handleClick(event) {
             });
             
             try {
-                const response = await fetch('http://localhost:5000/make_move', {
+                const response = await fetch(`${API_URL}/make_move`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -316,7 +339,7 @@ async function handleClick(event) {
 async function botMove() {
     try {
         console.log('Requesting bot move...');
-        const response = await fetch('http://localhost:5000/bot_move', {
+        const response = await fetch(`${API_URL}/bot_move`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -353,7 +376,9 @@ async function newGame() {
         currentPlayer: 1,
         selectedPiece: null,
         possibleMoves: [],
-        gameOver: false
+        gameOver: false,
+        whitePieces: 12,
+        blackPieces: 12
     };
     await updateBoardState();
 }

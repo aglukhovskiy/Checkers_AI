@@ -3,6 +3,10 @@ numpy>=1.21.0
 tensorflow>=2.8.0
 keras>=2.8.0
 
+# Web framework
+Flask>=2.3.0
+Flask-CORS>=4.0.0
+
 # GUI
 tkinter
 
