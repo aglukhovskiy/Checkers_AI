@@ -5,17 +5,21 @@ from src.core.board_v2 import CheckersGame
 import numpy as np
 
 app = Flask(__name__)
+
+# Расширенные настройки CORS и логирование
 CORS(app, resources={
-    r"/*": {"origins": [
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-        "file://",
-        "https://*.github.io",
-        "null",
-        "http://localhost:5000",
-        "https://checkers-a27051f3-4800-4cca-bdc3-26889a214275.up.railway.app"
-    ]}
+    r"/*": {
+        "origins": "*",  # Разрешаем все origins для тестирования
+        "methods": ["GET", "POST"],
+        "allow_headers": ["Content-Type"]
+    }
 })
+
+@app.before_request
+def log_request():
+    print(f"\nIncoming request: {request.method} {request.path}")
+    print(f"Headers: {dict(request.headers)}")
+    print(f"Origin: {request.headers.get('Origin')}")
 
 @app.route('/')
 def home():
@@ -208,6 +212,11 @@ def bot_move():
         return jsonify({'status': 'error', 'message': str(e)})
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))  # Railway использует 8080 по умолчанию
-    print(f"Starting server on port {port}")
-    app.run(host='0.0.0.0', port=port, debug=False)
+    port = int(os.environ.get('PORT', 8080))
+    print(f"\n=== Starting Flask server on port {port} ===")
+    print("Allowed origins:", app.config['CORS_ORIGINS'])
+    print("Registered routes:")
+    for rule in app.url_map.iter_rules():
+        print(f"- {rule.rule} ({', '.join(rule.methods)})")
+    
+    app.run(host='0.0.0.0', port=port, debug=True)  # Включен debug mode
