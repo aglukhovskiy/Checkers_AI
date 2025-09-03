@@ -6,8 +6,30 @@ import numpy as np
 
 app = Flask(__name__)
 CORS(app, resources={
-    r"/*": {"origins": ["http://localhost:8000", "http://127.0.0.1:8000", "file://", "https://*.github.io", "null"]}
+    r"/*": {"origins": [
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "file://",
+        "https://*.github.io",
+        "null",
+        "http://localhost:5000",
+        "https://checkers-a27051f3-4800-4cca-bdc3-26889a214275.up.railway.app"
+    ]}
 })
+
+@app.route('/')
+def home():
+    return jsonify({
+        'status': 'ok',
+        'message': 'Checkers API is running',
+        'endpoints': {
+            '/new_game': 'POST - Start new game',
+            '/make_move': 'POST - Make a move',
+            '/get_state': 'GET - Get current game state',
+            '/get_possible_moves': 'POST - Get possible moves',
+            '/bot_move': 'POST - Make bot move'
+        }
+    })
 
 # Инициализация игры
 game = CheckersGame()
