@@ -216,17 +216,17 @@ if __name__ == '__main__':
         port = int(os.environ.get('PORT', 8080))
         print(f"\n=== Starting Flask server on port {port} ===")
         
-        # Безопасный вывод CORS конфигурации
-        cors_config = getattr(app, 'extensions', {}).get('cors', {})
-        print("CORS settings:")
-        for resource, config in cors_config.resources.items():
-            print(f"- {resource}: {config.get('origins')}")
+        # Упрощенный вывод CORS конфигурации
+        if 'CORS_ORIGINS' in app.config:
+            print(f"CORS origins: {app.config['CORS_ORIGINS']}")
+        else:
+            print("CORS origins: Not configured")
             
         print("\nRegistered routes:")
         for rule in app.url_map.iter_rules():
             print(f"- {rule.rule} ({', '.join(rule.methods)})")
         
-        app.run(host='0.0.0.0', port=port, debug=True)
+        app.run(host='0.0.0.0', port=port, debug=False)
     except Exception as e:
         print(f"\n!!! Failed to start server: {str(e)} !!!")
         raise
