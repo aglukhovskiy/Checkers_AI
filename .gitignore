@@ -161,12 +161,14 @@ cython_debug/
 # Machine Learning / AI specific files
 # Model files (usually large binary files)
 *.h5
-*.hdf5
 *.keras
 *.pkl
 *.pickle
 *.joblib
 *.model
+# Ignore all hdf5 files except specific ones
+*.hdf5
+!test_model_custom_fiveteenplane_cbv.hdf5
 
 # NumPy arrays and data files
 *.npy
@@ -224,7 +226,7 @@ Desktop.ini
 
 # Project specific
 # Experience and model directories
-rl/models_n_exp/
+rl/models_n_exp/*
 !rl/models_n_exp/test_model_custom_fiveteenplane_cbv.hdf5
 experience_*/
 models/
