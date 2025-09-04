@@ -314,173 +314,23 @@ def reinforce(agent_filename, out_experience_filename, num_games, num_iterations
 
 # Пример использования
 if __name__ == "__main__":
-    pass
-    # Укажите, какую функцию вы хотите выполнить
 
     # 1. Для самоигры и генерации опыта
-    # do_self_play(
-    #     agent_filename='models_n_exp/test_model.hdf5',
-    #     num_games=250,
-    #     temperature=0.01,
-    #     experience_filename='experience_checkers'
-    # )
+    do_self_play(
+        agent_filename='models_n_exp/test_model.hdf5',
+        num_games=250,
+        temperature=0.01,
+        experience_filename='experience_checkers'
+    )
 
     # 2. Для обучения агента на основе собранного опыта
-    # trained_agent=train_agent(
-    #     agent_filename='models_n_exp/test_model_small.hdf5',
-    #     experience_filename='models_n_exp/experience_checkers_all_iters_one_plane.hdf5',
-    #     learning_rate=0.01,
-    #     batch_size=128,
-    #     epochs=1
-    # )
-    # with h5py.File('models_n_exp/test_model_small_trained.hdf5', 'w') as model_outf:
-    #     trained_agent.serialize(model_outf)
+    trained_agent=train_agent(
+        agent_filename='models_n_exp/test_model_small.hdf5',
+        experience_filename='models_n_exp/experience_checkers_all_iters_one_plane.hdf5',
+        learning_rate=0.01,
+        batch_size=128,
+        epochs=1
+    )
 
-    model_name = 'custom'
-    encoder_name = 'fiveteenplane'
-    lr = 0.03
-    batch_size = 512
-    q=False
-    loss='mse'
-    if q:
-        q_str = 'q_'
-    else:
-        q_str = ''
-    time_list = []
-    layers_module = importlib.import_module('networks.' + model_name)
-
-    encoder = get_encoder_by_name(encoder_name)
-    model=create_model()
-    # model=create_model_q_training()
-    new_agent = PolicyAgent(model, encoder)
-    # new_agent = QAgent(model, encoder)
-
-    test_agent_filename = 'models_n_exp/test_model_{}_{}.hdf5'.format(model_name, encoder_name)
-    reinforcement_exp_filename_3 = 'models_n_exp/experience_checkers_reinforce_all_iters_{}_{}_3.hdf5'.format(model_name, encoder_name)
-    exp_filename = 'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane.hdf5'
-    exp_filename_2 = 'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_2.hdf5'
-    train_result_agent_filename = 'models_n_exp/test_model_{}_{}_trained.hdf5'.format(model_name, encoder_name)
-    train_result_agent_for_reinforce_filename = 'models_n_exp/test_model_{}_{}_trained_for_reinforce.hdf5'.format(model_name, encoder_name)
-    # cbv = 'models_n_exp/test_model_{}_{}_cbv.hdf5'.format(model_name, encoder_name)
-    cbv = 'models_n_exp/test_model_custom_fiveteenplane_cbv.hdf5'
-    # 'models_n_exp/test_model_{}_{}_{}_{}_{}trained.hdf5'.format(model_name, encoder_name, lr, batch_size, q_str)
-    with h5py.File(test_agent_filename, 'w') as model_outf:
-        new_agent.serialize(model_outf)
-    # with h5py.File(train_result_agent_filename, 'w') as model_outf:
-    #     new_agent.serialize(model_outf)
-    # pool_size = load_experience(h5py.File(exp_filename)).states.shape[
-    #     0]
-
-    train_files_list = [
-        # 'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_part_1.hdf5',
-        # 'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_part_2.hdf5',
-        # 'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_part_3.hdf5',
-        # 'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_part_4.hdf5',
-        # 'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_part_5.hdf5',
-        'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_2_part_1.hdf5',
-        'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_2_part_2.hdf5',
-        'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_2_part_3.hdf5',
-        'models_n_exp/experience_checkers_reinforce_all_iters_custom_fiveteenplane_2_part_4.hdf5'
-    ]
-
-    cntr=0
-    for i in train_files_list:
-        cntr+=1
-        # lr = (10-cntr)*0.01
-        lr = 0.07
-        trained_agent=train_agent(
-            agent_filename=train_result_agent_filename,
-            experience_filename=i,
-            learning_rate=lr,
-            batch_size=batch_size,
-            epochs=1,
-            loss=loss
-        )
-        with h5py.File(train_result_agent_filename, 'w') as model_outf:
-            trained_agent.serialize(model_outf)
-
-    res = eval(test_agent_filename,train_result_agent_filename, 30, q=q)
-    res = eval(cbv,train_result_agent_filename, 100, q=q)
-    # a
-
-    # train_result_agent_for_reinforce = load_policy_agent(h5py.File(cbv))
-    # with h5py.File(train_result_agent_for_reinforce_filename, 'w') as model_outf:
-    #     train_result_agent_for_reinforce.serialize(model_outf)
-    # reinforce(
-    #     agent_filename=train_result_agent_for_reinforce_filename,
-    #     out_experience_filename = reinforcement_exp_filename_3,
-    #     # prev_experience_filename = reinforcement_exp_filename_3,
-    #     num_games=100,
-    #     num_iterations=5,
-    #     learning_rate=0.012,
-    #     batch_size=batch_size,
-    #     epochs=1,
-    #     temperature=0.05
-    #     )
-    # res = eval(cbv,train_result_agent_for_reinforce_filename, 100, q=q)
-    # print(res)
-    # if res[2]>res[3]/2:
-    #     train_result_agent_for_reinforce = load_policy_agent(h5py.File(train_result_agent_for_reinforce_filename))
-    #     with h5py.File(cbv, 'w') as model_outf:
-    #         train_result_agent_for_reinforce.serialize(model_outf)
-
-
-    # with open('training.log', 'r') as f:
-    #     file = csv.reader(f)
-    #     for row in file:
-    #         loss_value = row[1]
-    # fieldnames = ['blank_model','trained_model','wins','num_games','lr','batch_size', 'pool_size', 'model_name', 'q', 'loss']
-    # res = ['models_n_exp/test_model_custom_fiveteenplane.hdf5', 'models_n_exp/test_model_custom_fiveteenplane_trained.hdf5', 100, 100]
-    # for i in [ lr, batch_size, pool_size, model_name, q, loss]:
-    #     res.append(i)
-
-    # prev_data = []
-    # with open('results.csv', 'r') as f:
-    #     csvFile = csv.reader(f)
-    #     for i in csvFile:
-    #         prev_data.append(i)
-    #
-    # with open('results.csv', 'w', newline='') as f:
-    #     # csv.writer(f).writerow(fieldnames)
-    #     csv.writer(f).writerows(prev_data)
-    #     csv.writer(f).writerow(res)
-
-
-    # ['models_n_exp/test_model_fullyconnected.hdf5', 'models_n_exp/test_model_fullyconnected_trained.hdf5', 59, 100]
-    # ['models_n_exp/test_model_large.hdf5', 'models_n_exp/test_model_large_trained.hdf5', 56, 100]
-
-    # small, mse, 0.02, 512
-    # ['models_n_exp/test_model_small.hdf5', 'models_n_exp/test_model_small_trained.hdf5', 43, 50]
-    # ['models_n_exp/test_model_small.hdf5', 'models_n_exp/test_model_small_trained.hdf5', 46, 50]
-    # ['models_n_exp/test_model_small.hdf5', 'models_n_exp/test_model_small_trained.hdf5', 41, 50]
-
-
-    # exp1 = load_experience(h5py.File('models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages.hdf5'))
-    # exp2 = load_experience(h5py.File('models_n_exp/experience_checkers_reinforce_all_iters.hdf5'))
-    # exp_list = [exp1, exp2]
-    #
-    # total_exp = combine_experience(exp_list)
-    #
-    # with h5py.File('models_n_exp/experience_checkers_all_iters_thirteen_plane_insubjective_w_advantages_w_reinforce.hdf5', 'w') as experience_outf:
-    #     total_exp.serialize(experience_outf)
-
-
-    # # with h5py.File('models_n_exp/test_model.hdf5', 'r') as agent_file:
-    # #     bot = load_policy_agent(agent_file)
-    # # res = simulate_game(bot,bot,1)
-    # # print(res)
-
-    # with h5py.File('models_n_exp/test_model_small.hdf5', 'r') as agent_file:
-    #     agent = load_policy_agent(agent_file)
-    #
-    # game_record = simulate_game(agent, agent, game_num_for_record=0)
-
-    # do_self_play(
-    #     agent_filename='models_n_exp/test_model_small_trained.hdf5',
-    #     num_games=1,
-    #     temperature=0.01,
-    #     experience_filename='experience_checkers'
-    # )
-
-    # fieldnames = ['model_1', 'model_2', 'wins', 'num_games','lr','batch_size','pool_size','nn_type','q']
-    # res = ['models_n_exp/test_model_small.hdf5', 'models_n_exp/test_model_small_trained.hdf5', 130, 150, lr, batch_size, pool_size, model_name, q]
+    with h5py.File('models_n_exp/test_model_small_trained.hdf5', 'w') as model_outf:
+        trained_agent.serialize(model_outf)

@@ -237,4 +237,8 @@ models/
 rl/test_2.py
 Board_2.py
 DEPLOYMENT.md
+RAILWAY_GUIDE.md
 api.py
+src/rl/training/pg_train_v3.py
+
+!README.md
