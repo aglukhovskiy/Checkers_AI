@@ -9,3 +9,7 @@ requests==2.31.0
 
 # Core dependencies
 numpy==1.26.0
+
+# GUI dependencies
+pygame==2.6.1
+h5py==3.10.0

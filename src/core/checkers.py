@@ -53,18 +53,7 @@ if __name__ == '__main__':
     bot = Bot(the_depth=2, the_board=f)
     # bot = Bot.BotNN(the_board=f)
     encoder = OnePlaneEncoder()
-
     match = Checkers(control='command', opp=bot, board=f)
-
-    # match.next_turn(move='e3f4')
-    # match.next_turn(move='d6e5')
-    # match.next_turn(move='e3f4')
-    # match.next_turn()
-    # match.next_turn()
-    # encoder.show_board(f)
-    # print(encoder.encode(f)[0][::-1])
-    # print(match.board.field)
-
 
     while match.board.game_is_on == 1:
         match.next_turn()

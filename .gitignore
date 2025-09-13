@@ -242,3 +242,25 @@ api.py
 src/rl/training/pg_train_v3.py
 
 !README.md
+
+# Railway deployment files (not needed for main functionality)
+railway.toml
+railway.json
+update-api-url.js
+game.js
+
+# Old deployment guides
+DEPLOYMENT.md
+RAILWAY_GUIDE.md
+
+# Old API version
+api.py
+
+# Test files
+test_local.py
+test_static.py
+test.png
+
+# Miscellaneous
+Board_2.py
+run.py
